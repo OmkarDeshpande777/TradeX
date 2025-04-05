@@ -1,355 +1,98 @@
-<!-- templates/index.html -->
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Indian Stock Market Monitor</title>
-    <style>
-        body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            margin: 0;
-            padding: 20px;
-            background-color: #f5f5f5;
-            color: #333;
-        }
-        .container {
-            max-width: 1200px;
-            margin: 0 auto;
-            background-color: white;
-            border-radius: 8px;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
-            padding: 20px;
-        }
-        h1 {
-            color: #2c3e50;
-            margin-top: 0;
-            text-align: center;
-        }
-        .header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 20px;
-        }
-        .last-updated {
-            color: #7f8c8d;
-            font-size: 14px;
-        }
-        table {
-            width: 100%;
-            border-collapse: collapse;
-            margin-bottom: 20px;
-        }
-        th, td {
-            padding: 12px 15px;
-            text-align: left;
-            border-bottom: 1px solid #ddd;
-        }
-        th {
-            background-color: #f8f9fa;
-            font-weight: 600;
-            color: #2c3e50;
-        }
-        tr:hover {
-            background-color: #f8f9fa;
-        }
-        .up {
-            color: #27ae60;
-        }
-        .down {
-            color: #e74c3c;
-        }
-        .neutral {
-            color: #7f8c8d;
-        }
-        .controls {
-            display: flex;
-            justify-content: space-between;
-            margin-bottom: 20px;
-        }
-        button {
-            background-color: #3498db;
-            border: none;
-            color: white;
-            padding: 10px 15px;
-            border-radius: 4px;
-            cursor: pointer;
-            transition: background-color 0.3s;
-        }
-        button:hover {
-            background-color: #2980b9;
-        }
-        .settings {
-            margin-top: 20px;
-            border-top: 1px solid #ddd;
-            padding-top: 20px;
-        }
-        input, select {
-            padding: 8px;
-            border: 1px solid #ddd;
-            border-radius: 4px;
-            margin-right: 10px;
-        }
-        .status {
-            text-align: center;
-            margin: 10px 0;
-            font-style: italic;
-            color: #7f8c8d;
-        }
-        #addStockForm {
-            display: flex;
-            margin-bottom: 15px;
-        }
-        #newStock {
-            flex-grow: 1;
-            margin-right: 10px;
-        }
-    </style>
-</head>
-<body>
-    <div class="container">
-        <h1>Indian Stock Market Monitor</h1>
-        
-        <div class="header">
-            <div class="last-updated">Last updated: <span id="lastUpdated">-</span></div>
-            <div>
-                <label for="refreshInterval">Refresh every:</label>
-                <select id="refreshInterval">
-                    <option value="30">30 seconds</option>
-                    <option value="60" selected>1 minute</option>
-                    <option value="300">5 minutes</option>
-                    <option value="600">10 minutes</option>
-                </select>
+{% extends "layout.html" %}
+
+{% block title %}Indian Stock Market Monitor{% endblock %}
+
+{% block content %}
+    <div class="dashboard">
+        <!-- Dashboard Header with Metrics -->
+        <div class="metrics-container">
+            <div class="metric-card" id="totalValue">
+                <h3>Total Market Cap</h3>
+                <div class="metric-value">-</div>
+            </div>
+            <div class="metric-card" id="gainers">
+                <h3>Gainers</h3>
+                <div class="metric-value">-</div>
+            </div>
+            <div class="metric-card" id="losers">
+                <h3>Losers</h3>
+                <div class="metric-value">-</div>
             </div>
         </div>
-        
-        <div class="controls">
-            <button id="refreshBtn">Refresh Now</button>
-            <button id="toggleAutoRefresh">Pause Auto-Refresh</button>
-        </div>
-        
-        <table id="stocksTable">
-            <thead>
-                <tr>
-                    <th>Symbol</th>
-                    <th>Name</th>
-                    <th>Price</th>
-                    <th>Change</th>
-                    <th>Change %</th>
-                    <th>Trend</th>
-                    <th>Volume</th>
-                </tr>
-            </thead>
-            <tbody>
-                <!-- Stock data will be populated here -->
-            </tbody>
-        </table>
-        
-        <div class="status" id="status">Loading stocks data...</div>
-        
-        <div class="settings">
-            <h3>Add Stock</h3>
-            <form id="addStockForm">
-                <input type="text" id="newStock" placeholder="Enter stock symbol (e.g., RELIANCE)" required>
-                <button type="submit">Add</button>
-            </form>
-            
-            <h3>Stocks List</h3>
-            <div id="stocksList">
-                <!-- List of monitored stocks will be shown here -->
+
+        <!-- Main Content Area -->
+        <div class="dashboard-grid">
+            <!-- Stock Table -->
+            <div class="widget stock-table-widget">
+                <div class="widget-header">
+                    <h2>Stock Watchlist</h2>
+                    <div class="widget-controls">
+                        <button id="addStockBtn" class="btn sm primary">+ Add Stock</button>
+                    </div>
+                </div>
+                <div class="widget-content">
+                    {% include "components/stock_table.html" %}
+                </div>
+            </div>
+
+            <!-- Charts and Analysis -->
+            <div class="widget analysis-widget">
+                <div class="widget-header">
+                    <h2>Portfolio Analysis</h2>
+                    <div class="widget-controls">
+                        <select id="stockSelector">
+                            <option value="">Select a stock</option>
+                            {% for stock in stocks %}
+                            <option value="{{ stock }}">{{ stock }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                </div>
+                <div class="widget-content">
+                    <div class="chart-container">
+                        <canvas id="stockChart"></canvas>
+                    </div>
+                    <div class="sector-distribution">
+                        <h3>Sector Distribution</h3>
+                        <canvas id="sectorChart"></canvas>
+                    </div>
+                </div>
             </div>
         </div>
     </div>
 
-    <script>
-        // Global variables
-        let stocks = [
-            "RELIANCE.NS",    // Reliance Industries
-            "TCS.NS",         // Tata Consultancy Services
-            "HDFCBANK.NS",    // HDFC Bank
-            "INFY.NS",        // Infosys
-            "BAJFINANCE.NS",  // Bajaj Finance
-            "SBIN.NS",        // State Bank of India
-            "ICICIBANK.NS",   // ICICI Bank
-            "HINDUNILVR.NS",  // Hindustan Unilever
-            "ADANIENT.NS",    // Adani Enterprises
-            "TATAMOTORS.NS"   // Tata Motors
-        ];
-        let refreshIntervalId;
-        let isAutoRefreshEnabled = true;
-        
-        // DOM elements
-        const statusElement = document.getElementById('status');
-        const stocksTableBody = document.getElementById('stocksTable').querySelector('tbody');
-        const lastUpdatedElement = document.getElementById('lastUpdated');
-        const refreshIntervalSelect = document.getElementById('refreshInterval');
-        const refreshButton = document.getElementById('refreshBtn');
-        const toggleAutoRefreshButton = document.getElementById('toggleAutoRefresh');
-        const addStockForm = document.getElementById('addStockForm');
-        const newStockInput = document.getElementById('newStock');
-        const stocksListDiv = document.getElementById('stocksList');
-        
-        // Initialize the page
-        document.addEventListener('DOMContentLoaded', () => {
-            refreshStockData();
-            startAutoRefresh();
-            updateStocksList();
-            
-            // Event listeners
-            refreshButton.addEventListener('click', refreshStockData);
-            toggleAutoRefreshButton.addEventListener('click', toggleAutoRefresh);
-            refreshIntervalSelect.addEventListener('change', updateRefreshInterval);
-            addStockForm.addEventListener('submit', addStock);
-        });
-        
-        // Function to refresh stock data
-        async function refreshStockData() {
-            statusElement.textContent = 'Fetching stock data...';
-            
-            try {
-                // Build URL with stocks parameter
-                const stocksParam = stocks.join(',');
-                const url = `/api/stocks?stocks=${encodeURIComponent(stocksParam)}`;
-                
-                // Fetch data from the Flask API
-                const response = await fetch(url);
-                
-                if (!response.ok) {
-                    throw new Error(`HTTP error! Status: ${response.status}`);
-                }
-                
-                const result = await response.json();
-                const stocksData = result.data;
-                
-                // Update the table
-                stocksTableBody.innerHTML = '';
-                
-                stocksData.forEach(stock => {
-                    const row = document.createElement('tr');
-                    
-                    // Create cells
-                    row.innerHTML = `
-                        <td>${stock.symbol}</td>
-                        <td>${stock.name}</td>
-                        <td>${typeof stock.price === 'number' ? stock.price.toFixed(2) : stock.price}</td>
-                        <td class="${stock.trend}">${stock.change_formatted}</td>
-                        <td class="${stock.trend}">${stock.change_percent_formatted}</td>
-                        <td class="${stock.trend}">${stock.trend === 'up' ? '↑' : (stock.trend === 'down' ? '↓' : '-')}</td>
-                        <td>${typeof stock.volume === 'number' ? stock.volume.toLocaleString() : stock.volume}</td>
-                    `;
-                    
-                    stocksTableBody.appendChild(row);
-                });
-                
-                // Update last updated time
-                lastUpdatedElement.textContent = result.timestamp;
-                statusElement.textContent = 'Data updated successfully';
-                
-                // Clear status message after 3 seconds
-                setTimeout(() => {
-                    statusElement.textContent = '';
-                }, 3000);
-                
-            } catch (error) {
-                console.error('Error refreshing stock data:', error);
-                statusElement.textContent = `Error: ${error.message}`;
-            }
+    <!-- Add Stock Modal -->
+    <div id="addStockModal" class="modal">
+        <div class="modal-content">
+            <span class="close">&times;</span>
+            <h2>Add Stock to Watchlist</h2>
+            <form id="addStockForm">
+                <div class="form-group">
+                    <label for="newStock">Stock Symbol</label>
+                    <input type="text" id="newStock" placeholder="Enter stock symbol (e.g., RELIANCE)" required>
+                    <small>Note: .NS will be added automatically if needed</small>
+                </div>
+                <div class="form-actions">
+                    <button type="submit" class="btn primary">Add Stock</button>
+                    <button type="button" class="btn secondary modal-cancel">Cancel</button>
+                </div>
+            </form>
+        </div>
+    </div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    // Will be initialized in main.js
+    let selectedStock = '';
+    let stockChart = null;
+    let sectorChart = null;
+    
+    document.getElementById('stockSelector').addEventListener('change', function() {
+        selectedStock = this.value;
+        if (selectedStock) {
+            loadStockHistory(selectedStock);
         }
-        
-        // Function to start auto-refresh
-        function startAutoRefresh() {
-            const interval = parseInt(refreshIntervalSelect.value) * 1000;
-            
-            if (refreshIntervalId) {
-                clearInterval(refreshIntervalId);
-            }
-            
-            refreshIntervalId = setInterval(refreshStockData, interval);
-            toggleAutoRefreshButton.textContent = 'Pause Auto-Refresh';
-            isAutoRefreshEnabled = true;
-        }
-        
-        // Function to toggle auto-refresh
-        function toggleAutoRefresh() {
-            if (isAutoRefreshEnabled) {
-                clearInterval(refreshIntervalId);
-                toggleAutoRefreshButton.textContent = 'Resume Auto-Refresh';
-                isAutoRefreshEnabled = false;
-                statusElement.textContent = 'Auto-refresh paused';
-            } else {
-                startAutoRefresh();
-                statusElement.textContent = 'Auto-refresh resumed';
-            }
-        }
-        
-        // Function to update refresh interval
-        function updateRefreshInterval() {
-            if (isAutoRefreshEnabled) {
-                startAutoRefresh();
-            }
-            statusElement.textContent = `Refresh interval set to ${refreshIntervalSelect.value} seconds`;
-        }
-        
-        // Function to add a new stock
-        function addStock(event) {
-            event.preventDefault();
-            
-            const newStock = newStockInput.value.trim().toUpperCase();
-            
-            if (newStock) {
-                // Check if stock already exists in the list
-                const normalizedNewStock = newStock.endsWith('.NS') || newStock.endsWith('.BO') 
-                    ? newStock 
-                    : `${newStock}.NS`;
-                    
-                if (!stocks.includes(normalizedNewStock)) {
-                    stocks.push(normalizedNewStock);
-                    updateStocksList();
-                    refreshStockData();
-                    newStockInput.value = '';
-                    statusElement.textContent = `${normalizedNewStock} added to the watch list`;
-                } else {
-                    statusElement.textContent = 'This stock is already in your watch list';
-                }
-            }
-        }
-        
-        // Function to remove a stock
-        function removeStock(index) {
-            const removed = stocks.splice(index, 1)[0];
-            updateStocksList();
-            refreshStockData();
-            statusElement.textContent = `${removed} removed from the watch list`;
-        }
-        
-        // Function to update the stocks list display
-        function updateStocksList() {
-            stocksListDiv.innerHTML = '';
-            
-            if (stocks.length === 0) {
-                stocksListDiv.innerHTML = '<p>No stocks in your watch list</p>';
-                return;
-            }
-            
-            stocks.forEach((stock, index) => {
-                const stockItem = document.createElement('div');
-                stockItem.style.display = 'flex';
-                stockItem.style.justifyContent = 'space-between';
-                stockItem.style.alignItems = 'center';
-                stockItem.style.marginBottom = '8px';
-                stockItem.style.padding = '8px';
-                stockItem.style.backgroundColor = '#f8f9fa';
-                stockItem.style.borderRadius = '4px';
-                
-                stockItem.innerHTML = `
-                    <span>${stock}</span>
-                    <button class="remove-btn" style="background-color: #e74c3c;" onclick="removeStock(${index})">Remove</button>
-                `;
-                
-                stocksListDiv.appendChild(stockItem);
-            });
-        }
-    </script>
-</body>
-</html>
+    });
+</script>
+{% endblock %}

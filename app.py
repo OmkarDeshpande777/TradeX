@@ -1,10 +1,12 @@
-from flask import Flask, render_template, jsonify, request
-import requests
+from flask import Flask, render_template, jsonify, request, redirect, url_for, session
+from utils.stock_data import get_stock_data, get_stocks_data
+import os
+from datetime import datetime, timedelta
+from utils.stock_data import get_stock_history
 import pandas as pd
-from datetime import datetime
-import json
 
 app = Flask(__name__)
+app.secret_key = os.urandom(24)
 
 # Default stocks list
 DEFAULT_STOCKS = [
@@ -20,132 +22,132 @@ DEFAULT_STOCKS = [
     "TATAMOTORS.NS"   # Tata Motors
 ]
 
-def get_stock_data(symbol):
-    """
-    Get stock data directly from Yahoo Finance API
-    """
-    # Add .NS suffix if not already present
-    if not (symbol.endswith('.NS') or symbol.endswith('.BO')):
-        symbol = f"{symbol}.NS"
-        
-    headers = {
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
-    }
-    
-    url = f"https://query1.finance.yahoo.com/v8/finance/chart/{symbol}?interval=1d"
-    
-    try:
-        response = requests.get(url, headers=headers)
-        if response.status_code != 200:
-            return None
-            
-        data = response.json()
-        
-        # Extract the relevant data
-        meta = data.get('chart', {}).get('result', [{}])[0].get('meta', {})
-        
-        price = meta.get('regularMarketPrice', 'N/A')
-        previous_close = meta.get('previousClose', 'N/A')
-        
-        if price != 'N/A' and previous_close != 'N/A':
-            change = price - previous_close
-            change_percent = (change / previous_close) * 100
-        else:
-            change = 'N/A'
-            change_percent = 'N/A'
-            
-        return {
-            'symbol': symbol,
-            'price': price,
-            'change': change,
-            'change_percent': change_percent,
-            'volume': meta.get('regularMarketVolume', 'N/A'),
-            'name': meta.get('symbol', symbol)
-        }
-    except Exception as e:
-        print(f"Error fetching {symbol}: {e}")
-        return None
-
-def get_indian_stocks_data(symbols):
-    """
-    Get data for multiple Indian stocks
-    """
-    all_data = []
-    
-    for symbol in symbols:
-        print(f"Fetching data for {symbol}...")
-        data = get_stock_data(symbol)
-        
-        if data:
-            all_data.append(data)
-        else:
-            all_data.append({
-                'symbol': symbol,
-                'price': 'Error',
-                'change': 'N/A',
-                'change_percent': 'N/A',
-                'volume': 'N/A',
-                'name': symbol
-            })
-            
-    return all_data
-
-def format_indian_stocks_display(stocks_data):
-    """
-    Format the stocks data for display
-    """
-    formatted_data = []
-    
-    for stock in stocks_data:
-        formatted_stock = stock.copy()
-        
-        if formatted_stock['price'] != 'Error' and formatted_stock['change'] != 'N/A':
-            # Format change and change_percent
-            if isinstance(formatted_stock['change'], (int, float)):
-                formatted_stock['change_formatted'] = f"{formatted_stock['change']:+.2f}"
-                formatted_stock['trend'] = 'up' if formatted_stock['change'] > 0 else ('down' if formatted_stock['change'] < 0 else 'neutral')
-            else:
-                formatted_stock['change_formatted'] = formatted_stock['change']
-                formatted_stock['trend'] = 'neutral'
-                
-            if isinstance(formatted_stock['change_percent'], (int, float)):
-                formatted_stock['change_percent_formatted'] = f"{formatted_stock['change_percent']:+.2f}%"
-            else:
-                formatted_stock['change_percent_formatted'] = formatted_stock['change_percent']
-                
-        else:
-            formatted_stock['trend'] = 'neutral'
-            formatted_stock['change_formatted'] = formatted_stock['change']
-            formatted_stock['change_percent_formatted'] = formatted_stock['change_percent']
-            
-        formatted_data.append(formatted_stock)
-        
-    return formatted_data
-
 @app.route('/')
 def index():
-    """Render the main page"""
-    return render_template('index.html')
+    """Render the main dashboard page"""
+    # Initialize session if needed
+    if 'stocks' not in session:
+        session['stocks'] = DEFAULT_STOCKS
+    
+    return render_template('index.html', stocks=session['stocks'])
 
 @app.route('/api/stocks')
 def get_stocks():
     """API endpoint to get stock data"""
-    # Get stocks from query parameter or use defaults
+    # Get stocks from query parameter or use session stocks
     stocks_param = request.args.get('stocks')
     
     if stocks_param:
         stocks = stocks_param.split(',')
-    else:   
-        stocks = DEFAULT_STOCKS
+    else:
+        stocks = session.get('stocks', DEFAULT_STOCKS)
     
     # Get data
-    stocks_data = get_indian_stocks_data(stocks)
-    formatted_data = format_indian_stocks_display(stocks_data)
+    stocks_data = get_stocks_data(stocks)
+    
+    # Calculate portfolio metrics
+    total_market_cap = sum(stock['market_cap'] for stock in stocks_data if isinstance(stock.get('market_cap'), (int, float)))
+    
+    # Group stocks by sector for distribution chart
+    sector_distribution = {}
+    for stock in stocks_data:
+        sector = stock.get('sector', 'Unknown')
+        if sector in sector_distribution:
+            sector_distribution[sector] += 1
+        else:
+            sector_distribution[sector] = 1
     
     return jsonify({
-        'data': formatted_data,
-        'timestamp': datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+        'data': stocks_data,
+        'timestamp': datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
+        'metrics': {
+            'total_stocks': len(stocks_data),
+            'total_market_cap': total_market_cap,
+            'sector_distribution': sector_distribution
+        }
     })
+
+@app.route('/add_stock', methods=['POST'])
+def add_stock():
+    """Add a stock to the watchlist"""
+    stock = request.form.get('stock', '').strip().upper()
+    
+    if not stock:
+        return jsonify({'status': 'error', 'message': 'No stock symbol provided'}), 400
+    
+    # Add .NS suffix if not already present
+    if not (stock.endswith('.NS') or stock.endswith('.BO')):
+        stock = f"{stock}.NS"
+    
+    # Get current stocks
+    current_stocks = session.get('stocks', DEFAULT_STOCKS.copy())
+    
+    # Check if stock already exists
+    if stock in current_stocks:
+        return jsonify({'status': 'error', 'message': 'Stock already in watchlist'}), 400
+    
+    # Validate the stock by attempting to fetch its data
+    stock_data = get_stock_data(stock)
+    if not stock_data or stock_data.get('price') == 'Error':
+        return jsonify({'status': 'error', 'message': 'Invalid stock symbol'}), 400
+    
+    # Add to session
+    current_stocks.append(stock)
+    session['stocks'] = current_stocks
+    
+    return jsonify({'status': 'success', 'message': f'Added {stock} to watchlist'})
+
+@app.route('/remove_stock', methods=['POST'])
+def remove_stock():
+    """Remove a stock from the watchlist"""
+    stock = request.form.get('stock', '').strip()
+    
+    if not stock:
+        return jsonify({'status': 'error', 'message': 'No stock symbol provided'}), 400
+    
+    # Get current stocks
+    current_stocks = session.get('stocks', DEFAULT_STOCKS.copy())
+    
+    # Remove stock if it exists
+    if stock in current_stocks:
+        current_stocks.remove(stock)
+        session['stocks'] = current_stocks
+        return jsonify({'status': 'success', 'message': f'Removed {stock} from watchlist'})
+    else:
+        return jsonify({'status': 'error', 'message': 'Stock not in watchlist'}), 400
+
+@app.route('/reset_watchlist', methods=['POST'])
+def reset_watchlist():
+    """Reset the watchlist to default stocks"""
+    session['stocks'] = DEFAULT_STOCKS.copy()
+    return jsonify({'status': 'success', 'message': 'Watchlist reset to defaults'})
+
+@app.route('/api/stock_history/<symbol>')
+def stock_history_api(symbol):
+    """API endpoint to get historical stock data"""
+    period = request.args.get('period', '1y')
+    history = get_stock_history(symbol, period)
+    
+    # Convert DataFrame to list of dictionaries
+    history_data = []
+    for index, row in history.iterrows():
+        history_data.append({
+            'date': row['Date'],
+            'close': row['Close']
+        })
+    
+    return jsonify({
+        'symbol': symbol,
+        'period': period,
+        'data': history_data
+    })
+
+# Add a route for the history page view
+@app.route('/stock/<symbol>/history')
+def stock_history_page(symbol):
+    """Render stock history page"""
+    return render_template('stock_history.html', symbol=symbol)
+
 
 if __name__ == "__main__":
     app.run(debug=True)

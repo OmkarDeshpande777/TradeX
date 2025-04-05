@@ -1,0 +1,68 @@
+{% extends "layout.html" %}
+
+{% block title %}{{ symbol }} Historical Performance{% endblock %}
+
+{% block content %}
+    <div class="dashboard">
+        <div class="widget">
+            <div class="widget-header">
+                <h2>Historical Performance</h2>
+                <div class="widget-controls">
+                    <select id="periodSelector">
+                        <option value="1mo">1 Month</option>
+                        <option value="3mo">3 Months</option>
+                        <option value="6mo">6 Months</option>
+                        <option value="1y" selected>1 Year</option>
+                        <option value="2y">2 Years</option>
+                        <option value="5y">5 Years</option>
+                    </select>
+                    <a href="/" class="btn secondary sm">Back to Dashboard</a>
+                </div>
+            </div>
+            <div class="widget-content">
+                <h3 id="chartTitle">Historical Price Movement - {{ symbol }}</h3>
+                <div class="chart-container">
+                    <canvas id="historyChart"></canvas>
+                </div>
+                
+                <div class="metrics-container" style="margin-top: 20px;">
+                    <div class="metric-card" id="highPrice">
+                        <h3>Highest Price</h3>
+                        <div class="metric-value">-</div>
+                    </div>
+                    <div class="metric-card" id="lowPrice">
+                        <h3>Lowest Price</h3>
+                        <div class="metric-value">-</div>
+                    </div>
+                    <div class="metric-card" id="avgPrice">
+                        <h3>Average Price</h3>
+                        <div class="metric-value">-</div>
+                    </div>
+                    <div class="metric-card" id="priceChange">
+                        <h3>Price Change</h3>
+                        <div class="metric-value">-</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+{% endblock %}
+
+{% block scripts %}
+<script src="{{ url_for('static', filename='js/chart.js') }}"></script>
+<script>
+    // Initialize variables
+    const symbol = "{{ symbol }}";
+    let historyChart = null;
+    
+    // Load the initial chart
+    document.addEventListener('DOMContentLoaded', function() {
+        loadStockHistory(symbol, '1y');
+        
+        // Event listener for period change
+        document.getElementById('periodSelector').addEventListener('change', function() {
+            loadStockHistory(symbol, this.value);
+        });
+    });
+</script>
+{% endblock %}

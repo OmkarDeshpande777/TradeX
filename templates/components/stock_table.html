@@ -1,0 +1,41 @@
+<div class="stock-filter">
+    <input type="text" id="stockFilter" placeholder="Filter stocks...">
+    <select id="trendFilter">
+        <option value="all">All Stocks</option>
+        <option value="up">Only Gainers</option>
+        <option value="down">Only Losers</option>
+    </select>
+</div>
+
+<div class="table-container">
+    <table id="stocksTable">
+        <thead>
+            <tr>
+                <th data-sort="symbol">Symbol</th>
+                <th data-sort="name">Name</th>
+                <th data-sort="price" class="number">Price</th>
+                <th data-sort="change" class="number">Change</th>
+                <th data-sort="change_percent" class="number">Change %</th>
+                <th data-sort="volume" class="number">Volume</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+            <!-- Stock data will be populated here -->
+        </tbody>
+    </table>
+</div>
+
+<thead>
+    <tr>
+        <th data-sort="symbol">Symbol</th>
+        <th data-sort="name">Name</th>
+        <th data-sort="price" class="number">Price</th>
+        <th data-sort="change" class="number">Change</th>
+        <th data-sort="change_percent" class="number">Change %</th>
+        <th data-sort="volume" class="number">Volume</th>
+        <th>Actions</th>
+    </tr>
+</thead>
+
+<div class="status" id="status"></div>

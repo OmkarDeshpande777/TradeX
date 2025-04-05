@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Indian Stock Market Monitor{% endblock %}</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.29.1/moment.min.js"></script>
+</head>
+<body>
+    <header class="app-header">
+        <div class="logo">
+            <h1>Stock Market Monitor</h1>
+        </div>
+        <div class="header-controls">
+            <div class="last-updated">
+                Last updated: <span id="lastUpdated">-</span>
+            </div>
+            <div class="refresh-control">
+                <label for="refreshInterval">Refresh every:</label>
+                <select id="refreshInterval">
+                    <option value="30">30 seconds</option>
+                    <option value="60" selected>1 minute</option>
+                    <option value="300">5 minutes</option>
+                    <option value="600">10 minutes</option>
+                </select>
+                <button id="refreshBtn" class="btn primary">Refresh Now</button>
+                <button id="toggleAutoRefresh" class="btn secondary">Pause Auto-Refresh</button>
+            </div>
+        </div>
+    </header>
+
+    <div class="container">
+        {% block content %}{% endblock %}
+    </div>
+
+    <footer>
+        <p>© 2025 Indian Stock Market Monitor | <a href="#" id="resetWatchlist">Reset to Default</a></p>
+    </footer>
+
+    <script src="{{ url_for('static', filename='js/main.js') }}"></script>
+    {% block scripts %}{% endblock %}
+</body>
+</html>
