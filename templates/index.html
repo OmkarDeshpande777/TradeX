@@ -35,25 +35,13 @@
                 </div>
             </div>
 
-            <!-- Charts and Analysis -->
-            <div class="widget analysis-widget">
+            <!-- Sector Distribution -->
+            <div class="widget sector-widget">
                 <div class="widget-header">
-                    <h2>Portfolio Analysis</h2>
-                    <div class="widget-controls">
-                        <select id="stockSelector">
-                            <option value="">Select a stock</option>
-                            {% for stock in stocks %}
-                            <option value="{{ stock }}">{{ stock }}</option>
-                            {% endfor %}
-                        </select>
-                    </div>
+                    <h2>Sector Distribution</h2>
                 </div>
                 <div class="widget-content">
-                    <div class="chart-container">
-                        <canvas id="stockChart"></canvas>
-                    </div>
                     <div class="sector-distribution">
-                        <h3>Sector Distribution</h3>
                         <canvas id="sectorChart"></canvas>
                     </div>
                 </div>
@@ -79,20 +67,4 @@
             </form>
         </div>
     </div>
-{% endblock %}
-
-{% block scripts %}
-<script>
-    // Will be initialized in main.js
-    let selectedStock = '';
-    let stockChart = null;
-    let sectorChart = null;
-    
-    document.getElementById('stockSelector').addEventListener('change', function() {
-        selectedStock = this.value;
-        if (selectedStock) {
-            loadStockHistory(selectedStock);
-        }
-    });
-</script>
 {% endblock %}
