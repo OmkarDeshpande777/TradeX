@@ -1,5 +1,5 @@
 from flask import Flask, render_template, jsonify, request, redirect, url_for, session
-from utils.stock_data import get_stock_data, get_stocks_data
+from utils.stock_data import get_stock_data, get_stocks_data, get_mutual_funds_data, find_and_test_mutual_funds
 import os
 from datetime import datetime, timedelta
 from utils.stock_data import get_stock_history
@@ -142,12 +142,45 @@ def stock_history_api(symbol):
         'data': history_data
     })
 
+
+working_symbols = find_and_test_mutual_funds()['working_symbols']
+
+@app.route('/api/mutualfunds')
+def get_mutual_funds():
+    """API endpoint to get mutual fund data"""
+    # Get mutual fund data using the working symbols
+    funds_data = get_mutual_funds_data(working_symbols)
+    
+    if not funds_data:
+        return jsonify({
+            'data': [],
+            'timestamp': datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
+            'message': 'No mutual fund data available at this time'
+        })
+    
+    return jsonify({
+        'data': funds_data,
+        'timestamp': datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+    })
+
 # Add a route for the history page view
 @app.route('/stock/<symbol>/history')
 def stock_history_page(symbol):
     """Render stock history page"""
     return render_template('stock_history.html', symbol=symbol)
 
+@app.route('/api/ipos')
+def get_ipos():
+    """API endpoint to get upcoming IPO data"""
+    from utils.stock_data import get_upcoming_ipos
+    
+    # Get IPO data
+    ipos_data = get_upcoming_ipos()
+    
+    return jsonify({
+        'data': ipos_data,
+        'timestamp': datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+    })
 
 if __name__ == "__main__":
     app.run(debug=True)

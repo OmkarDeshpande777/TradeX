@@ -4,7 +4,7 @@
 
 {% block content %}
     <div class="dashboard">
-        <!-- Dashboard Header with Metrics -->
+        <!-- Metrics Section -->
         <div class="metrics-container">
             <div class="metric-card" id="totalValue">
                 <h3>Total Market Cap</h3>
@@ -19,52 +19,58 @@
                 <div class="metric-value">-</div>
             </div>
         </div>
-
-        <!-- Main Content Area -->
-        <div class="dashboard-grid">
-            <!-- Stock Table -->
-            <div class="widget stock-table-widget">
-                <div class="widget-header">
-                    <h2>Stock Watchlist</h2>
-                    <div class="widget-controls">
-                        <button id="addStockBtn" class="btn sm primary">+ Add Stock</button>
-                    </div>
-                </div>
-                <div class="widget-content">
-                    {% include "components/stock_table.html" %}
+        
+        <!-- Main Stocks Widget -->
+        <div class="widget">
+            <div class="widget-header">
+                <h2>Stock Watchlist</h2>
+                <div class="widget-controls">
+                    <button id="addStockBtn" class="btn primary">Add Stock</button>
                 </div>
             </div>
+            <div class="widget-content">
+                {% include 'components/stock_table.html' %}
+            </div>
+        </div>
+        
+        <!-- New IPO Section -->
+        {% include 'components/upcoming_ipos.html' %}
 
-            <!-- Sector Distribution -->
-            <div class="widget sector-widget">
-                <div class="widget-header">
-                    <h2>Sector Distribution</h2>
-                </div>
-                <div class="widget-content">
-                    <div class="sector-distribution">
-                        <canvas id="sectorChart"></canvas>
-                    </div>
+        <!-- New Mutual Funds Section -->
+        {% include 'components/mutual_funds.html' %}
+        
+        <!-- Sector Distribution Widget -->
+        <div class="widget">
+            <div class="widget-header">
+                <h2>Sector Distribution</h2>
+            </div>
+            <div class="widget-content">
+                <div class="chart-container">
+                    <canvas id="sectorChart"></canvas>
                 </div>
             </div>
         </div>
     </div>
-
+    
     <!-- Add Stock Modal -->
     <div id="addStockModal" class="modal">
         <div class="modal-content">
-            <span class="close">&times;</span>
-            <h2>Add Stock to Watchlist</h2>
-            <form id="addStockForm">
-                <div class="form-group">
-                    <label for="newStock">Stock Symbol</label>
-                    <input type="text" id="newStock" placeholder="Enter stock symbol (e.g., RELIANCE)" required>
-                    <small>Note: .NS will be added automatically if needed</small>
-                </div>
-                <div class="form-actions">
-                    <button type="submit" class="btn primary">Add Stock</button>
-                    <button type="button" class="btn secondary modal-cancel">Cancel</button>
-                </div>
-            </form>
+            <div class="modal-header">
+                <h2>Add Stock to Watchlist</h2>
+                <span class="close">&times;</span>
+            </div>
+            <div class="modal-body">
+                <form id="addStockForm">
+                    <div class="form-group">
+                        <label for="newStock">Stock Symbol:</label>
+                        <input type="text" id="newStock" name="newStock" placeholder="RELIANCE, TCS, etc." required>
+                    </div>
+                    <div class="form-actions">
+                        <button type="submit" class="btn primary">Add</button>
+                        <button type="button" class="btn secondary modal-cancel">Cancel</button>
+                    </div>
+                </form>
+            </div>
         </div>
     </div>
 {% endblock %}
