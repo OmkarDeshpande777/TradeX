@@ -3,11 +3,6 @@ import pandas as pd
 from datetime import datetime, timedelta
 import random
 import time
-
-import requests
-import pandas as pd
-from datetime import datetime
-import time
 import json
 
 def get_mutual_funds_data(fund_list=None, debug=False):
@@ -211,9 +206,8 @@ def test_mutual_fund_availability(fund_list=None):
     # Default mutual funds tickers if none provided or use common Indian Mutual Funds
     if fund_list is None:
         fund_list = [
-            # Test with various formats to see which works
             'HDFC-TOP-100-FUND-DIRECT-PLAN-GROWTH.MF',
-            '235467.BO',  # Some funds may be listed with numeric IDs
+            '235467.BO',
             'HDFC5OOFUNDREGU.NS',
             'ICICIPRUUS.BO',
             'LICMFINDEX.NS'
@@ -398,12 +392,10 @@ def get_upcoming_ipos():
             }
         ]
 
-
 def get_stock_data(symbol):
     """
     Get stock data directly from Yahoo Finance API
     """
-    # Add .NS suffix if not already present
     if not (symbol.endswith('.NS') or symbol.endswith('.BO')):
         symbol = f"{symbol}.NS"
         
@@ -419,8 +411,6 @@ def get_stock_data(symbol):
             return None
             
         data = response.json()
-        
-        # Extract the relevant data
         meta = data.get('chart', {}).get('result', [{}])[0].get('meta', {})
         
         price = meta.get('regularMarketPrice', 'N/A')
@@ -433,12 +423,9 @@ def get_stock_data(symbol):
             change = 'N/A'
             change_percent = 'N/A'
         
-        # Get additional information for enhanced display
-        # Note: These are mock values since Yahoo Finance API may not provide all of them
         market_cap = price * random.randint(10000000, 1000000000) if isinstance(price, (int, float)) else 'N/A'
         volume = meta.get('regularMarketVolume', 'N/A')
         
-        # Mock sector data (you can replace this with real data if available)
         sectors = ['Information Technology', 'Financial Services', 'Energy', 'Healthcare', 
                    'Consumer Goods', 'Industrial', 'Telecom', 'Utilities']
         sector = random.choice(sectors)
@@ -505,53 +492,17 @@ def get_stocks_data(symbols):
             
     return all_data
 
-def get_stock_history(symbol, days=30):
-    """
-    Get historical stock data (mocked for demonstration)
-    """
-    # This is a mock function - in production, you'd call Yahoo Finance API for historical data
-    end_date = datetime.now()
-    start_date = end_date - timedelta(days=days)
-    
-    dates = []
-    prices = []
-    
-    current_date = start_date
-    # Start with a random price between 100 and 1000
-    last_price = random.uniform(100, 1000)
-    
-    while current_date <= end_date:
-        if current_date.weekday() < 5:  # Only include weekdays
-            dates.append(current_date.strftime('%Y-%m-%d'))
-            # Generate a random price movement (-3% to +3% from previous day)
-            price_change = last_price * random.uniform(-0.03, 0.03)
-            last_price += price_change
-            prices.append(round(last_price, 2))
-        
-        current_date += timedelta(days=1)
-    
-    return pd.DataFrame({
-        'Date': dates,
-        'Close': prices
-    })
-    
-    
-    # Update stock_data.py with real Yahoo Finance historical data function
-    
-# Keep existing functions and add:
-
 def get_stock_history(symbol, period="1y"):
     """
     Get historical stock data from Yahoo Finance
-    
+
     Parameters:
     symbol (str): Stock symbol
     period (str): Time period - 1d, 5d, 1mo, 3mo, 6mo, 1y, 2y, 5y, 10y, ytd, max
-    
+
     Returns:
-    pandas.DataFrame: Historical price data
+    pandas.DataFrame: Historical OHLCV price data
     """
-    # Add .NS suffix if not already present
     if not (symbol.endswith('.NS') or symbol.endswith('.BO')):
         symbol = f"{symbol}.NS"
         
@@ -559,10 +510,8 @@ def get_stock_history(symbol, period="1y"):
         'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
     }
     
-    # Get current time in Unix timestamp format
     now = int(time.time())
     
-    # Set period
     period_seconds = {
         '1d': 86400,
         '5d': 432000,
@@ -575,7 +524,6 @@ def get_stock_history(symbol, period="1y"):
         'max': 9999999999
     }
     
-    # Calculate start time based on period
     start_time = now - period_seconds.get(period, period_seconds['1y'])
     
     url = f"https://query1.finance.yahoo.com/v8/finance/chart/{symbol}?interval=1d&period1={start_time}&period2={now}"
@@ -583,32 +531,37 @@ def get_stock_history(symbol, period="1y"):
     try:
         response = requests.get(url, headers=headers)
         if response.status_code != 200:
-            return pd.DataFrame(columns=['Date', 'Close'])
+            return pd.DataFrame(columns=['Date', 'Open', 'High', 'Low', 'Close', 'Volume'])
             
         data = response.json()
-        
-        # Extract the relevant data
         result = data.get('chart', {}).get('result', [{}])[0]
+        
         timestamps = result.get('timestamp', [])
-        close_prices = result.get('indicators', {}).get('quote', [{}])[0].get('close', [])
-        
-        # Convert timestamps to dates
+        quote_data = result.get('indicators', {}).get('quote', [{}])[0]
+
         dates = [datetime.fromtimestamp(ts).strftime('%Y-%m-%d') for ts in timestamps]
-        
-        # Create DataFrame
+
         df = pd.DataFrame({
             'Date': dates,
-            'Close': close_prices
+            'Open': quote_data.get('open', []),
+            'High': quote_data.get('high', []),
+            'Low': quote_data.get('low', []),
+            'Close': quote_data.get('close', []),
+            'Volume': quote_data.get('volume', []),
         })
-        
-        # Clean up data - remove NaN values
+
         df = df.dropna()
-        
         return df
-        
+
     except Exception as e:
         print(f"Error fetching historical data for {symbol}: {e}")
-        # Return empty DataFrame with correct columns
-        return pd.DataFrame(columns=['Date', 'Close'])
-    
-    
+        return pd.DataFrame(columns=['Date', 'Open', 'High', 'Low', 'Close', 'Volume'])
+
+# Example usage:
+# stock_info = get_stock_data('INFY')
+# print(stock_info)
+
+# df = get_stock_history('INFY', period='6mo')
+# print(df.head())
+
+

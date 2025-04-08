@@ -1,37 +1,39 @@
 {% extends "layout.html" %}
 
-{% block title %}{{ symbol }} Historical Performance{% endblock %}
+{% block title %}{{ symbol }} Stock History{% endblock %}
 
 {% block content %}
-    <div class="dashboard">
+    <div class="container">
+        <h1 id="chartTitle">{{ symbol }} Historical Data</h1>
         <div class="widget">
             <div class="widget-header">
-                <h2>Historical Performance</h2>
+                <h2>Price History</h2>
                 <div class="widget-controls">
-                    <select id="periodSelector">
+                    <label for="periodSelect">Period:</label>
+                    <select id="periodSelect">
+                        <option value="1d">1 Day</option>
+                        <option value="5d">5 Days</option>
                         <option value="1mo">1 Month</option>
-                        <option value="3mo">3 Months</option>
                         <option value="6mo">6 Months</option>
+                        <option value="ytd">YTD</option>
                         <option value="1y" selected>1 Year</option>
-                        <option value="2y">2 Years</option>
+                        <option value="3y">3 Years</option>
                         <option value="5y">5 Years</option>
+                        <option value="max">MAX</option>
                     </select>
-                    <a href="/" class="btn secondary sm">Back to Dashboard</a>
                 </div>
             </div>
             <div class="widget-content">
-                <h3 id="chartTitle">Historical Price Movement - {{ symbol }}</h3>
                 <div class="chart-container">
                     <canvas id="historyChart"></canvas>
                 </div>
-                
-                <div class="metrics-container" style="margin-top: 20px;">
+                <div class="metrics-container">
                     <div class="metric-card" id="highPrice">
-                        <h3>Highest Price</h3>
+                        <h3>High Price</h3>
                         <div class="metric-value">-</div>
                     </div>
                     <div class="metric-card" id="lowPrice">
-                        <h3>Lowest Price</h3>
+                        <h3>Low Price</h3>
                         <div class="metric-value">-</div>
                     </div>
                     <div class="metric-card" id="avgPrice">
@@ -43,26 +45,40 @@
                         <div class="metric-value">-</div>
                     </div>
                 </div>
+                <div class="table-container">
+                    <table id="historyTable">
+                        <thead>
+                            <tr>
+                                <th>Date</th>
+                                <th class="number">Open</th>
+                                <th class="number">High</th>
+                                <th class="number">Low</th>
+                                <th class="number">Close</th>
+                                <th class="number">Volume</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <!-- Populated by JavaScript -->
+                        </tbody>
+                    </table>
+                </div>
             </div>
         </div>
     </div>
 {% endblock %}
 
 {% block scripts %}
-<script src="{{ url_for('static', filename='js/chart.js') }}"></script>
-<script>
-    // Initialize variables
-    const symbol = "{{ symbol }}";
-    let historyChart = null;
-    
-    // Load the initial chart
-    document.addEventListener('DOMContentLoaded', function() {
-        loadStockHistory(symbol, '1y');
-        
-        // Event listener for period change
-        document.getElementById('periodSelector').addEventListener('change', function() {
-            loadStockHistory(symbol, this.value);
+    <script src="{{ url_for('static', filename='js/chart.js') }}"></script>
+    <script>
+        // Ensure currentSymbol is globally accessible
+        window.currentSymbol = '{{ symbol }}';
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('DOMContentLoaded fired, symbol:', window.currentSymbol);
+            if (typeof loadStockHistory === 'function') {
+                loadStockHistory(window.currentSymbol, '1y');
+            } else {
+                console.error('loadStockHistory function not found');
+            }
         });
-    });
-</script>
+    </script>
 {% endblock %}

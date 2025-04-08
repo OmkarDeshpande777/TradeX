@@ -156,21 +156,22 @@ footer {
     flex-grow: 1;
 }
 
-/* Stock Table */
-.stock-filter {
+/* Tables (Stocks, Mutual Funds, IPOs) */
+.stock-filter, .fund-filter {
     display: flex;
     gap: 10px;
     margin-bottom: 15px;
 }
 
-.stock-filter input, .stock-filter select {
+.stock-filter input, .stock-filter select,
+.fund-filter input, .fund-filter select {
     padding: 8px 12px;
     border: 1px solid var(--border-color);
     border-radius: 4px;
     font-size: 0.9rem;
 }
 
-.stock-filter input {
+.stock-filter input, .fund-filter input {
     flex-grow: 1;
 }
 
@@ -235,12 +236,50 @@ tbody tr:hover {
     color: var(--neutral-color);
 }
 
-.status {
+.center {
+    text-align: center;
+}
+
+/* Specific Table Adjustments */
+#stocksTable td:nth-child(3), /* Price */
+#stocksTable td:nth-child(4), /* Change */
+#stocksTable td:nth-child(5), /* Change % */
+#stocksTable td:nth-child(6), /* Volume */
+#fundsTable td:nth-child(3),  /* NAV */
+#fundsTable td:nth-child(4),  /* Change % */
+#fundsTable td:nth-child(5),  /* Expense Ratio */
+#fundsTable td:nth-child(7) { /* 1Y Return */
+    white-space: nowrap;
+}
+
+#iposTable td:nth-child(3), /* Price Range */
+#iposTable td:nth-child(5), /* Issue Size */
+#iposTable td:nth-child(6) { /* Lot Size */
+    white-space: nowrap;
+}
+
+/* Status Messages */
+.status, #ipoStatus, #fundsStatus {
     text-align: center;
     margin: 10px 0;
     font-style: italic;
     color: var(--secondary-color);
     font-size: 0.9rem;
+}
+
+/* Badges (for IPO Status) */
+.badge {
+    display: inline-block;
+    padding: 4px 8px;
+    border-radius: 12px;
+    font-size: 0.8rem;
+    font-weight: 500;
+    text-transform: capitalize;
+}
+
+.badge.upcoming {
+    background-color: var(--primary-color);
+    color: white;
 }
 
 /* Chart Container */
@@ -361,7 +400,7 @@ select, input {
     margin-top: 20px;
 }
 
-/* Action buttons */
+/* Action Buttons */
 .action-btn {
     background: none;
     border: none;
@@ -372,4 +411,11 @@ select, input {
 
 .action-btn:hover {
     color: var(--danger-color);
+}
+
+/* Action Buttons Container */
+.action-buttons {
+    display: flex;
+    gap: 5px;
+    align-items: center;
 }

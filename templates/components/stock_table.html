@@ -1,12 +1,12 @@
 <div class="stock-filter">
-    <input type="text" id="stockFilter" placeholder="Filter stocks...">
+    <input type="text" id="stockFilter" placeholder="Filter by symbol or name...">
     <select id="trendFilter">
-        <option value="all">All Stocks</option>
-        <option value="up">Only Gainers</option>
-        <option value="down">Only Losers</option>
+        <option value="all">All Trends</option>
+        <option value="up">Gainers</option>
+        <option value="down">Losers</option>
+        <option value="neutral">Neutral</option>
     </select>
 </div>
-
 <div class="table-container">
     <table id="stocksTable">
         <thead>
@@ -21,9 +21,8 @@
             </tr>
         </thead>
         <tbody>
-            <!-- Stock data will be populated here -->
+            <!-- Populated by JavaScript -->
         </tbody>
     </table>
 </div>
-
-<div class="status" id="status"></div>
+<div id="status" class="status">Loading stock data...</div>

@@ -4,7 +4,7 @@ let autoRefreshInterval;
 let refreshIntervalSeconds = 60; // Default refresh interval
 let isAutoRefreshEnabled = true;
 let sectorChart = null;
-let ipoData = []; // New variable for IPO data
+let ipoData = [];
 let mutualFundsData = [];
 
 document.addEventListener('DOMContentLoaded', function() {
@@ -19,8 +19,8 @@ function initializeApp() {
     initializeSectorChart();
     
     fetchStockData();
-    fetchIPOData(); // New function call
-    fetchMutualFundsData(); // New function call
+    fetchIPOData();
+    fetchMutualFundsData();
     startAutoRefresh();
 }
 
@@ -65,225 +65,6 @@ function setupRefreshControls() {
         resetWatchlist();
     });
     
-    // Add IPO refresh button handler
-    const refreshIposBtn = document.getElementById('refreshIposBtn');
-    if (refreshIposBtn) {
-        refreshIposBtn.addEventListener('click', function() {
-            fetchIPOData();
-        });
-    }
-}
-
-// Add new function to fetch IPO data
-function fetchIPOData() {
-    updateIPOStatus('Fetching upcoming IPO data...');
-    
-    fetch('/api/ipos')
-        .then(response => {
-            if (!response.ok) {
-                throw new Error('Network response was not ok');
-            }
-            return response.json();
-        })
-        .then(data => {
-            updateIPOStatus('');
-            ipoData = data.data;
-            
-            populateIPOTable(ipoData);
-        })
-        .catch(error => {
-            console.error('Error fetching IPO data:', error);
-            updateIPOStatus('Failed to fetch IPO data. Please try again.');
-        });
-}
-
-// Add new function to populate IPO table
-function populateIPOTable(ipos) {
-    const tbody = document.querySelector('#iposTable tbody');
-    if (!tbody) return;
-    
-    tbody.innerHTML = '';
-    
-    if (ipos.length === 0) {
-        const row = document.createElement('tr');
-        row.innerHTML = `<td colspan="8" class="center">No upcoming IPOs available at this time</td>`;
-        tbody.appendChild(row);
-        return;
-    }
-    
-    ipos.forEach(ipo => {
-        const row = document.createElement('tr');
-        row.innerHTML = `
-            <td>${ipo.company_name}</td>
-            <td>${ipo.symbol}</td>
-            <td>${ipo.price_range}</td>
-            <td>${ipo.expected_date}</td>
-            <td>${ipo.issue_size}</td>
-            <td>${ipo.lot_size}</td>
-            <td>${ipo.sector}</td>
-            <td><span class="badge ${ipo.status.toLowerCase()}">${ipo.status}</span></td>
-        `;
-        tbody.appendChild(row);
-    });
-}
-
-// Add function to update IPO status
-function updateIPOStatus(message) {
-    const statusElem = document.getElementById('ipoStatus');
-    if (statusElem) {
-        statusElem.textContent = message;
-    }
-}
-
-// Update auto-refresh to include IPO data refresh
-function startAutoRefresh() {
-    if (autoRefreshInterval) clearInterval(autoRefreshInterval);
-    autoRefreshInterval = setInterval(() => {
-        fetchStockData();
-        // Refresh IPO data less frequently (every 5 regular intervals)
-        if (Math.floor(Date.now() / 1000) % (refreshIntervalSeconds * 5) < refreshIntervalSeconds) {
-            fetchIPOData();
-        }
-    }, refreshIntervalSeconds * 1000);
-}
-
-
-// Add new function to fetch mutual fund data
-function fetchMutualFundsData() {
-    updateFundsStatus('Fetching mutual fund data...');
-    
-    fetch('/api/mutualfunds')
-        .then(response => {
-            if (!response.ok) {
-                throw new Error('Network response was not ok');
-            }
-            return response.json();
-        })
-        .then(data => {
-            console.log('Received mutual fund data:', data);
-            updateFundsStatus('');
-            mutualFundsData = data.data;
-            populateMutualFundsTable(mutualFundsData);
-        })
-        .catch(error => {
-            console.error('Error fetching mutual fund data:', error);
-            updateFundsStatus('Failed to fetch mutual fund data. Please try again.');
-        });
-}
-
-// Add function to populate mutual funds table
-function populateMutualFundsTable(funds) {
-    const tbody = document.querySelector('#fundsTable tbody');
-    if (!tbody) return;
-    
-    tbody.innerHTML = '';
-    
-    if (funds.length === 0) {
-        const row = document.createElement('tr');
-        row.innerHTML = `<td colspan="7" class="center">No mutual fund data available</td>`;
-        tbody.appendChild(row);
-        return;
-    }
-    
-    funds.forEach(fund => {
-        const row = document.createElement('tr');
-        row.innerHTML = `
-            <td>${fund.name}</td>
-            <td>${fund.category}</td>
-            <td class="number ${fund.trend}">${fund.formatted.nav}</td>
-            <td class="number ${fund.trend}">${fund.formatted.change_percent}</td>
-            <td class="number">${fund.formatted.expense_ratio}</td>
-            <td>${fund.risk_level}</td>
-            <td class="number ${fund.return_1y !== undefined && fund.return_1y >= 0 ? 'up' : 'down'}">${fund.return_1y !== undefined ? fund.return_1y + '%' : 'N/A'}</td>
-        `;
-        tbody.appendChild(row);
-    });
-}
-
-    
-    // Setup fund filtering
-    document.getElementById('fundFilter').addEventListener('input', filterFunds);
-    document.getElementById('categoryFilter').addEventListener('change', filterFunds);
-
-
-// Add function to update mutual funds status
-function updateFundsStatus(message) {
-    const statusElem = document.getElementById('fundsStatus');
-    if (statusElem) {
-        statusElem.textContent = message;
-    }
-}
-
-// Add function to filter mutual funds
-function filterFunds() {
-    const filterText = document.getElementById('fundFilter').value.toLowerCase();
-    const categoryFilter = document.getElementById('categoryFilter').value;
-    
-    const rows = document.querySelectorAll('#fundsTable tbody tr');
-    
-    rows.forEach(row => {
-        const name = row.cells[0].textContent.toLowerCase();
-        const category = row.cells[1].textContent;
-        
-        const matchesText = name.includes(filterText);
-        const matchesCategory = categoryFilter === 'all' || category === categoryFilter;
-        
-        row.style.display = matchesText && matchesCategory ? '' : 'none';
-    });
-    
-    const visibleRows = document.querySelectorAll('#fundsTable tbody tr:not([style*="display: none"])');
-    updateFundsStatus(visibleRows.length === 0 ? 'No funds match the current filters' : '');
-}
-
-// Update auto-refresh to include mutual funds
-function startAutoRefresh() {
-    if (autoRefreshInterval) clearInterval(autoRefreshInterval);
-    autoRefreshInterval = setInterval(() => {
-        fetchStockData();
-        // Refresh IPO and mutual fund data less frequently (every 5 regular intervals)
-        if (Math.floor(Date.now() / 1000) % (refreshIntervalSeconds * 5) < refreshIntervalSeconds) {
-            fetchIPOData();
-            fetchMutualFundsData();
-        }
-    }, refreshIntervalSeconds * 1000);
-}
-
-// Keep all existing functions from the original main.js and add these new ones
-function setupRefreshControls() {
-    const refreshBtn = document.getElementById('refreshBtn');
-    const refreshInterval = document.getElementById('refreshInterval');
-    const toggleAutoRefresh = document.getElementById('toggleAutoRefresh');
-    
-    refreshBtn.addEventListener('click', function() {
-        fetchStockData();
-    });
-    
-    refreshInterval.addEventListener('change', function() {
-        refreshIntervalSeconds = parseInt(this.value);
-        restartAutoRefresh();
-    });
-    
-    toggleAutoRefresh.addEventListener('click', function() {
-        if (isAutoRefreshEnabled) {
-            stopAutoRefresh();
-            this.textContent = 'Resume Auto-Refresh';
-            this.classList.remove('secondary');
-            this.classList.add('primary');
-        } else {
-            startAutoRefresh();
-            this.textContent = 'Pause Auto-Refresh';
-            this.classList.remove('primary');
-            this.classList.add('secondary');
-        }
-        isAutoRefreshEnabled = !isAutoRefreshEnabled;
-    });
-    
-    document.getElementById('resetWatchlist').addEventListener('click', function(e) {
-        e.preventDefault();
-        resetWatchlist();
-    });
-    
-    // Add IPO refresh button handler
     const refreshIposBtn = document.getElementById('refreshIposBtn');
     if (refreshIposBtn) {
         refreshIposBtn.addEventListener('click', function() {
@@ -344,9 +125,13 @@ function setupTableSorting() {
 function setupFilters() {
     const stockFilter = document.getElementById('stockFilter');
     const trendFilter = document.getElementById('trendFilter');
+    const fundFilter = document.getElementById('fundFilter');
+    const categoryFilter = document.getElementById('categoryFilter');
     
     stockFilter.addEventListener('input', filterStocks);
     trendFilter.addEventListener('change', filterStocks);
+    if (fundFilter) fundFilter.addEventListener('input', filterFunds);
+    if (categoryFilter) categoryFilter.addEventListener('change', filterFunds);
 }
 
 function fetchStockData() {
@@ -374,8 +159,52 @@ function fetchStockData() {
         });
 }
 
+function fetchIPOData() {
+    updateIPOStatus('Fetching upcoming IPO data...');
+    
+    fetch('/api/ipos')
+        .then(response => {
+            if (!response.ok) {
+                throw new Error('Network response was not ok');
+            }
+            return response.json();
+        })
+        .then(data => {
+            updateIPOStatus('');
+            ipoData = data.data;
+            populateIPOTable(ipoData);
+        })
+        .catch(error => {
+            console.error('Error fetching IPO data:', error);
+            updateIPOStatus('Failed to fetch IPO data. Please try again.');
+        });
+}
+
+function fetchMutualFundsData() {
+    updateFundsStatus('Fetching mutual fund data...');
+    
+    fetch('/api/mutualfunds')
+        .then(response => {
+            if (!response.ok) {
+                throw new Error('Network response was not ok');
+            }
+            return response.json();
+        })
+        .then(data => {
+            updateFundsStatus('');
+            mutualFundsData = data.data;
+            populateMutualFundsTable(mutualFundsData);
+        })
+        .catch(error => {
+            console.error('Error fetching mutual fund data:', error);
+            updateFundsStatus('Failed to fetch mutual fund data. Please try again.');
+        });
+}
+
 function populateStockTable(stocks) {
     const tbody = document.querySelector('#stocksTable tbody');
+    if (!tbody) return;
+    
     tbody.innerHTML = '';
     
     stocks.forEach(stock => {
@@ -390,7 +219,6 @@ function populateStockTable(stocks) {
             <td>
                 <div class="action-buttons">
                     <a href="/stock/${stock.symbol}/history" class="btn sm primary">History</a>
-                    
                     <button class="action-btn remove-stock" data-symbol="${stock.symbol}">❌</button>
                 </div>
             </td>
@@ -403,6 +231,65 @@ function populateStockTable(stocks) {
             const symbol = this.getAttribute('data-symbol');
             removeStock(symbol);
         });
+    });
+}
+
+function populateIPOTable(ipos) {
+    const tbody = document.querySelector('#iposTable tbody');
+    if (!tbody) return;
+    
+    tbody.innerHTML = '';
+    
+    if (ipos.length === 0) {
+        const row = document.createElement('tr');
+        row.innerHTML = `<td colspan="8" class="center">No upcoming IPOs available at this time</td>`;
+        tbody.appendChild(row);
+        return;
+    }
+    
+    ipos.forEach(ipo => {
+        const expectedDate = ipo.expected_date === 'TBA' ? 'TBA' : 
+            new Date(parseInt(ipo.expected_date) * 1000).toLocaleDateString();
+        const row = document.createElement('tr');
+        row.innerHTML = `
+            <td>${ipo.company_name}</td>
+            <td>${ipo.symbol}</td>
+            <td>${ipo.price_range}</td>
+            <td>${expectedDate}</td>
+            <td>${ipo.issue_size}</td>
+            <td>${ipo.lot_size}</td>
+            <td>${ipo.sector}</td>
+            <td><span class="badge ${ipo.status.toLowerCase()}">${ipo.status}</span></td>
+        `;
+        tbody.appendChild(row);
+    });
+}
+
+function populateMutualFundsTable(funds) {
+    const tbody = document.querySelector('#fundsTable tbody');
+    if (!tbody) return;
+    
+    tbody.innerHTML = '';
+    
+    if (funds.length === 0) {
+        const row = document.createElement('tr');
+        row.innerHTML = `<td colspan="7" class="center">No mutual fund data available</td>`;
+        tbody.appendChild(row);
+        return;
+    }
+    
+    funds.forEach(fund => {
+        const row = document.createElement('tr');
+        row.innerHTML = `
+            <td>${fund.name}</td>
+            <td>${fund.category}</td>
+            <td class="number ${fund.trend}">${fund.formatted.nav}</td>
+            <td class="number ${fund.trend}">${fund.formatted.change_percent}</td>
+            <td class="number">${fund.formatted.expense_ratio}</td>
+            <td>${fund.risk_level}</td>
+            <td class="number ${fund.return_1y >= 0 ? 'up' : 'down'}">${fund.return_1y !== undefined ? fund.return_1y.toFixed(2) + '%' : 'N/A'}</td>
+        `;
+        tbody.appendChild(row);
     });
 }
 
@@ -422,19 +309,32 @@ function updateMetrics(metrics) {
 }
 
 function updateStatus(message) {
-    document.getElementById('status').textContent = message;
+    const statusElem = document.getElementById('status');
+    if (statusElem) statusElem.textContent = message;
+}
+
+function updateIPOStatus(message) {
+    const statusElem = document.getElementById('ipoStatus');
+    if (statusElem) statusElem.textContent = message;
+}
+
+function updateFundsStatus(message) {
+    const statusElem = document.getElementById('fundsStatus');
+    if (statusElem) statusElem.textContent = message;
 }
 
 function initializeSectorChart() {
-    const sectorChartCtx = document.getElementById('sectorChart').getContext('2d');
-    sectorChart = new Chart(sectorChartCtx, {
+    const sectorChartCtx = document.getElementById('sectorChart');
+    if (!sectorChartCtx) return;
+    
+    sectorChart = new Chart(sectorChartCtx.getContext('2d'), {
         type: 'pie',
         data: {
             labels: [],
             datasets: [{
                 data: [],
                 backgroundColor: [
-                    '#FF6384', '#36A2EB', '#FFCE56', '#4BC0C0', 
+                    '#FF6384', '#36A2EB', '#FFCE56', '#4BC0C0',
                     '#9966FF', '#FF9F40', '#2ECC71', '#E74C3C'
                 ]
             }]
@@ -443,9 +343,7 @@ function initializeSectorChart() {
             responsive: true,
             maintainAspectRatio: false,
             plugins: {
-                legend: {
-                    position: 'top'
-                },
+                legend: { position: 'top' },
                 tooltip: {
                     callbacks: {
                         label: function(context) {
@@ -463,6 +361,8 @@ function initializeSectorChart() {
 }
 
 function updateSectorChart(sectorData) {
+    if (!sectorChart) return;
+    
     const labels = Object.keys(sectorData);
     const data = labels.map(label => sectorData[label]);
     
@@ -518,13 +418,33 @@ function filterStocks() {
     updateStatus(visibleRows.length === 0 ? 'No stocks match the current filters' : '');
 }
 
+function filterFunds() {
+    const filterText = document.getElementById('fundFilter')?.value.toLowerCase() || '';
+    const categoryFilter = document.getElementById('categoryFilter')?.value || 'all';
+    
+    const rows = document.querySelectorAll('#fundsTable tbody tr');
+    
+    rows.forEach(row => {
+        const name = row.cells[0].textContent.toLowerCase();
+        const category = row.cells[1].textContent;
+        
+        const matchesText = name.includes(filterText);
+        const matchesCategory = categoryFilter === 'all' || category === categoryFilter;
+        
+        row.style.display = matchesText && matchesCategory ? '' : 'none';
+    });
+    
+    const visibleRows = document.querySelectorAll('#fundsTable tbody tr:not([style*="display: none"])');
+    updateFundsStatus(visibleRows.length === 0 ? 'No funds match the current filters' : '');
+}
+
 function startAutoRefresh() {
     if (autoRefreshInterval) clearInterval(autoRefreshInterval);
     autoRefreshInterval = setInterval(() => {
         fetchStockData();
-        // Refresh IPO data less frequently (every 5 regular intervals)
         if (Math.floor(Date.now() / 1000) % (refreshIntervalSeconds * 5) < refreshIntervalSeconds) {
             fetchIPOData();
+            fetchMutualFundsData();
         }
     }, refreshIntervalSeconds * 1000);
 }

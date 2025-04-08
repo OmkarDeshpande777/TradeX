@@ -19,45 +19,52 @@
                 <div class="metric-value">-</div>
             </div>
         </div>
-        
-        <!-- Main Stocks Widget -->
-        <div class="widget">
-            <div class="widget-header">
-                <h2>Stock Watchlist</h2>
-                <div class="widget-controls">
-                    <button id="addStockBtn" class="btn primary">Add Stock</button>
+
+        <!-- Dashboard Grid for Widgets -->
+        <div class="dashboard-grid">
+            <!-- Main Stocks Widget -->
+            <div class="widget">
+                <div class="widget-header">
+                    <h2>Stock Watchlist</h2>
+                    <div class="widget-controls">
+                        <button id="addStockBtn" class="btn primary">Add Stock</button>
+                    </div>
+                </div>
+                <div class="widget-content">
+                    {% include 'components/stock_table.html' %}
                 </div>
             </div>
-            <div class="widget-content">
-                {% include 'components/stock_table.html' %}
-            </div>
-        </div>
-        
-        <!-- New IPO Section -->
-        {% include 'components/upcoming_ipos.html' %}
 
-        <!-- New Mutual Funds Section -->
-        {% include 'components/mutual_funds.html' %}
-        
-        <!-- Sector Distribution Widget -->
-        <div class="widget">
-            <div class="widget-header">
-                <h2>Sector Distribution</h2>
+            <!-- Upcoming IPOs Widget -->
+            <div class="widget">
+                {% include 'components/upcoming_ipos.html' %}
             </div>
-            <div class="widget-content">
-                <div class="chart-container">
-                    <canvas id="sectorChart"></canvas>
+
+            <!-- Mutual Funds Widget -->
+            <div class="widget">
+                {% include 'components/mutual_funds.html' %}
+            </div>
+
+            <!-- Sector Distribution Widget -->
+            <div class="widget">
+                <div class="widget-header">
+                    <h2>Sector Distribution</h2>
+                </div>
+                <div class="widget-content">
+                    <div class="chart-container">
+                        <canvas id="sectorChart"></canvas>
+                    </div>
                 </div>
             </div>
         </div>
     </div>
-    
+
     <!-- Add Stock Modal -->
     <div id="addStockModal" class="modal">
         <div class="modal-content">
             <div class="modal-header">
                 <h2>Add Stock to Watchlist</h2>
-                <span class="close">&times;</span>
+                <span class="close">×</span>
             </div>
             <div class="modal-body">
                 <form id="addStockForm">

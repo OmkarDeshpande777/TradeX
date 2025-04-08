@@ -1,42 +1,40 @@
-<div class="widget">
-    <div class="widget-header">
-        <h2>Mutual Funds</h2>
-        <div class="widget-controls">
-            <button id="refreshFundsBtn" class="btn secondary sm">Refresh</button>
-        </div>
+<div class="widget-header">
+    <h2>Mutual Funds</h2>
+    <div class="widget-controls">
+        <button id="refreshFundsBtn" class="btn primary">Refresh Funds</button>
     </div>
-    <div class="widget-content">
-        <div class="fund-filter">
-            <input type="text" id="fundFilter" placeholder="Filter funds...">
-            <select id="categoryFilter">
-                <option value="all">All Categories</option>
-                <option value="Large Cap">Large Cap</option>
-                <option value="Mid Cap">Mid Cap</option>
-                <option value="Small Cap">Small Cap</option>
-                <option value="Equity">Equity</option>
-                <option value="Debt">Debt</option>
-                <option value="Hybrid">Hybrid</option>
-                <option value="Index">Index</option>
-            </select>
-        </div>
-        <div class="table-container">
-            <table id="fundsTable">
-                <thead>
-                    <tr>
-                        <th data-sort="name">Fund Name</th>
-                        <th data-sort="category">Category</th>
-                        <th data-sort="nav" class="number">NAV</th>
-                        <th data-sort="change_percent" class="number">Change %</th>
-                        <th data-sort="expense_ratio" class="number">Expense Ratio</th>
-                        <th data-sort="risk_level">Risk Level</th>
-                        <th data-sort="return_1y" class="number">1Y Return</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    <!-- Mutual Fund data will be populated here -->
-                </tbody>
-            </table>
-        </div>
-        <div class="status" id="fundsStatus"></div>
+</div>
+<div class="widget-content">
+    <div class="fund-filter">
+        <input type="text" id="fundFilter" placeholder="Filter by fund name...">
+        <select id="categoryFilter">
+            <option value="all">All Categories</option>
+            <option value="Large Cap">Large Cap</option>
+            <option value="Mid Cap">Mid Cap</option>
+            <option value="Small Cap">Small Cap</option>
+            <option value="Debt">Debt</option>
+            <option value="Hybrid">Hybrid</option>
+            <option value="Index">Index</option>
+            <option value="Equity">Equity</option>
+        </select>
     </div>
+    <div class="table-container">
+        <table id="fundsTable">
+            <thead>
+                <tr>
+                    <th>Name</th>
+                    <th>Category</th>
+                    <th class="number">NAV</th>
+                    <th class="number">Change %</th>
+                    <th class="number">Expense Ratio</th>
+                    <th>Risk Level</th>
+                    <th class="number">1Y Return</th>
+                </tr>
+            </thead>
+            <tbody>
+                <!-- Populated by JavaScript -->
+            </tbody>
+        </table>
+    </div>
+    <div id="fundsStatus" class="status">Loading mutual fund data...</div>
 </div>
