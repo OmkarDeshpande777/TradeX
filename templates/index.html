@@ -6,59 +6,75 @@
     <div class="dashboard">
         <!-- Metrics Section -->
         <div class="metrics-container">
-            <div class="metric-card" id="totalValue">
-                <h3>Total Market Cap</h3>
+            <div class="metric-card" id="portfolioValue">
+                <h3>Portfolio Value</h3>
                 <div class="metric-value">-</div>
             </div>
-            <div class="metric-card" id="gainers">
-                <h3>Gainers</h3>
-                <div class="metric-value">-</div>
-            </div>
-            <div class="metric-card" id="losers">
-                <h3>Losers</h3>
+            <div class="metric-card" id="portfolioPL">
+                <h3>Portfolio P/L</h3>
                 <div class="metric-value">-</div>
             </div>
         </div>
-
-        <!-- Dashboard Grid for Widgets -->
-        <div class="dashboard-grid">
-            <!-- Main Stocks Widget -->
-            <div class="widget">
-                <div class="widget-header">
-                    <h2>Stock Watchlist</h2>
-                    <div class="widget-controls">
-                        <button id="addStockBtn" class="btn primary">Add Stock</button>
-                    </div>
-                </div>
-                <div class="widget-content">
-                    {% include 'components/stock_table.html' %}
+        
+        <!-- Main Stocks Widget -->
+        <div class="widget">
+            <div class="widget-header">
+                <h2>Stock Watchlist</h2>
+                <div class="widget-controls">
+                    <button id="addStockBtn" class="btn primary">Add Stock</button>
                 </div>
             </div>
-
-            <!-- Upcoming IPOs Widget -->
-            <div class="widget">
-                {% include 'components/upcoming_ipos.html' %}
-            </div>
-
-            <!-- Mutual Funds Widget -->
-            <div class="widget">
-                {% include 'components/mutual_funds.html' %}
-            </div>
-
-            <!-- Sector Distribution Widget -->
-            <div class="widget">
-                <div class="widget-header">
-                    <h2>Sector Distribution</h2>
+            <div class="widget-content">
+                <div class="stock-filter">
+                    <input type="text" id="stockFilter" placeholder="Filter by symbol or name...">
+                    <select id="trendFilter">
+                        <option value="all">All Trends</option>
+                        <option value="up">Gainers</option>
+                        <option value="down">Losers</option>
+                        <option value="neutral">Neutral</option>
+                    </select>
                 </div>
-                <div class="widget-content">
-                    <div class="chart-container">
-                        <canvas id="sectorChart"></canvas>
-                    </div>
+                <div class="table-container">
+                    <table id="stocksTable">
+                        <thead>
+                            <tr>
+                                <th data-sort="symbol">Symbol</th>
+                                <th data-sort="name">Name</th>
+                                <th data-sort="price" class="number">Price</th>
+                                <th data-sort="change" class="number">Change</th>
+                                <th data-sort="change_percent" class="number">Change %</th>
+                                <th data-sort="volume" class="number">Volume</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="stockTableBody">
+                            <!-- Populated by JavaScript -->
+                        </tbody>
+                    </table>
+                </div>
+                <div id="status" class="status">Loading stock data...</div>
+            </div>
+        </div>
+        
+        <!-- New IPO Section -->
+        {% include 'components/upcoming_ipos.html' %}
+
+        <!-- New Mutual Funds Section -->
+        {% include 'components/mutual_funds.html' %}
+        
+        <!-- Sector Distribution Widget -->
+        <div class="widget">
+            <div class="widget-header">
+                <h2>Sector Distribution</h2>
+            </div>
+            <div class="widget-content">
+                <div class="chart-container">
+                    <canvas id="sectorChart"></canvas>
                 </div>
             </div>
         </div>
     </div>
-
+    
     <!-- Add Stock Modal -->
     <div id="addStockModal" class="modal">
         <div class="modal-content">
@@ -80,4 +96,78 @@
             </div>
         </div>
     </div>
+
+    <!-- Buy Stock Modal -->
+    <div id="buyStockModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Buy Stock</h2>
+                <span class="close">×</span>
+            </div>
+            <div class="modal-body">
+                <form id="buyStockForm">
+                    <div class="form-group">
+                        <label for="buySymbol">Stock Symbol:</label>
+                        <input type="text" id="buySymbol" name="stock" readonly>
+                    </div>
+                    <div class="form-group">
+                        <label for="buyQuantity">Quantity:</label>
+                        <input type="number" id="buyQuantity" name="quantity" min="1" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="buyPrice">Buy Price (₹, optional):</label>
+                        <input type="number" id="buyPrice" name="buy_price" min="0" step="0.01" placeholder="Leave blank for market price">
+                    </div>
+                    <div class="form-group">
+                        <label for="transactionDate">Transaction Date (optional):</label>
+                        <input type="date" id="transactionDate" name="transaction_date" placeholder="YYYY-MM-DD">
+                    </div>
+                    <div class="form-group">
+                        <label for="transactionType">Transaction Type:</label>
+                        <select id="transactionType" name="transaction_type">
+                            <option value="buy">New Buy</option>
+                            <option value="average">Average Existing</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="buyNotes">Notes (optional):</label>
+                        <textarea id="buyNotes" name="notes" rows="2" placeholder="Any additional notes"></textarea>
+                    </div>
+                    <div class="form-actions">
+                        <button type="submit" class="btn primary">Buy</button>
+                        <button type="button" class="btn secondary modal-cancel">Cancel</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+{% endblock %}
+
+{% block scripts %}
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const stockFilter = document.getElementById('stockFilter');
+            const trendFilter = document.getElementById('trendFilter');
+            
+            function applyFilters() {
+                const filterText = stockFilter.value.toLowerCase();
+                const trend = trendFilter.value;
+                const rows = document.querySelectorAll('#stockTableBody tr');
+                
+                rows.forEach(row => {
+                    const symbol = row.cells[0].textContent.toLowerCase();
+                    const name = row.cells[1].textContent.toLowerCase();
+                    const trendClass = row.classList.contains('up') ? 'up' : 
+                                    (row.classList.contains('down') ? 'down' : 'neutral');
+                    
+                    const matchesText = symbol.includes(filterText) || name.includes(filterText);
+                    const matchesTrend = trend === 'all' || trend === trendClass;
+                    row.style.display = matchesText && matchesTrend ? '' : 'none';
+                });
+            }
+            
+            stockFilter.addEventListener('input', applyFilters);
+            trendFilter.addEventListener('change', applyFilters);
+        });
+    </script>
 {% endblock %}

@@ -564,4 +564,3 @@ def get_stock_history(symbol, period="1y"):
 # df = get_stock_history('INFY', period='6mo')
 # print(df.head())
 
-

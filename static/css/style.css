@@ -47,6 +47,21 @@ body {
     font-size: 1.5rem;
 }
 
+nav {
+    display: flex;
+    gap: 20px;
+}
+
+nav a {
+    color: var(--dark-color);
+    text-decoration: none;
+    font-weight: 500;
+}
+
+nav a:hover {
+    color: var(--primary-color);
+}
+
 .header-controls {
     display: flex;
     align-items: center;
@@ -156,22 +171,23 @@ footer {
     flex-grow: 1;
 }
 
-/* Tables (Stocks, Mutual Funds, IPOs) */
-.stock-filter, .fund-filter {
+/* Stock Table */
+.stock-filter {
     display: flex;
     gap: 10px;
     margin-bottom: 15px;
+    flex-wrap: wrap;
 }
 
-.stock-filter input, .stock-filter select,
-.fund-filter input, .fund-filter select {
+.stock-filter input,
+.stock-filter select {
     padding: 8px 12px;
     border: 1px solid var(--border-color);
     border-radius: 4px;
     font-size: 0.9rem;
 }
 
-.stock-filter input, .fund-filter input {
+.stock-filter input {
     flex-grow: 1;
 }
 
@@ -185,7 +201,8 @@ table {
     font-size: 0.9rem;
 }
 
-th, td {
+th,
+td {
     padding: 12px 15px;
     text-align: left;
     border-bottom: 1px solid var(--border-color);
@@ -216,7 +233,8 @@ th.desc::after {
     opacity: 1;
 }
 
-th.number, td.number {
+th.number,
+td.number {
     text-align: right;
 }
 
@@ -226,40 +244,20 @@ tbody tr:hover {
 
 .up {
     color: var(--success-color);
+    font-weight: 600;
 }
 
 .down {
     color: var(--danger-color);
+    font-weight: 600;
 }
 
 .neutral {
     color: var(--neutral-color);
+    font-weight: 600;
 }
 
-.center {
-    text-align: center;
-}
-
-/* Specific Table Adjustments */
-#stocksTable td:nth-child(3), /* Price */
-#stocksTable td:nth-child(4), /* Change */
-#stocksTable td:nth-child(5), /* Change % */
-#stocksTable td:nth-child(6), /* Volume */
-#fundsTable td:nth-child(3),  /* NAV */
-#fundsTable td:nth-child(4),  /* Change % */
-#fundsTable td:nth-child(5),  /* Expense Ratio */
-#fundsTable td:nth-child(7) { /* 1Y Return */
-    white-space: nowrap;
-}
-
-#iposTable td:nth-child(3), /* Price Range */
-#iposTable td:nth-child(5), /* Issue Size */
-#iposTable td:nth-child(6) { /* Lot Size */
-    white-space: nowrap;
-}
-
-/* Status Messages */
-.status, #ipoStatus, #fundsStatus {
+.status {
     text-align: center;
     margin: 10px 0;
     font-style: italic;
@@ -267,19 +265,12 @@ tbody tr:hover {
     font-size: 0.9rem;
 }
 
-/* Badges (for IPO Status) */
-.badge {
-    display: inline-block;
-    padding: 4px 8px;
-    border-radius: 12px;
-    font-size: 0.8rem;
-    font-weight: 500;
-    text-transform: capitalize;
+tbody tr.positive-change {
+    background-color: #e8f5e9;
 }
 
-.badge.upcoming {
-    background-color: var(--primary-color);
-    color: white;
+tbody tr.negative-change {
+    background-color: #ffebee;
 }
 
 /* Chart Container */
@@ -334,7 +325,8 @@ tbody tr:hover {
     background-color: #d32f2f;
 }
 
-select, input {
+select,
+input {
     padding: 8px 12px;
     border: 1px solid var(--border-color);
     border-radius: 4px;
@@ -382,7 +374,8 @@ select, input {
     font-weight: 500;
 }
 
-.form-group input {
+.form-group input,
+.form-group select {
     width: 100%;
 }
 
@@ -400,7 +393,7 @@ select, input {
     margin-top: 20px;
 }
 
-/* Action Buttons */
+/* Action buttons */
 .action-btn {
     background: none;
     border: none;
@@ -413,9 +406,53 @@ select, input {
     color: var(--danger-color);
 }
 
-/* Action Buttons Container */
-.action-buttons {
-    display: flex;
-    gap: 5px;
-    align-items: center;
+/* Responsive adjustments */
+@media (max-width: 768px) {
+    .app-header {
+        flex-direction: column;
+        gap: 10px;
+    }
+
+    nav {
+        flex-direction: column;
+        align-items: center;
+    }
+
+    .header-controls {
+        flex-direction: column;
+        gap: 10px;
+    }
+
+    .refresh-control {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+
+    .stock-filter {
+        flex-direction: column;
+    }
+
+    .widget-header {
+        flex-direction: column;
+        gap: 10px;
+    }
+
+    .widget-controls {
+        justify-content: center;
+    }
+}
+
+/* Details/Summary for Tips */
+details {
+    margin: 10px 0;
+}
+
+summary {
+    cursor: pointer;
+    font-weight: 500;
+    padding: 5px;
+}
+
+details[open] summary {
+    border-bottom: 1px solid var(--border-color);
 }

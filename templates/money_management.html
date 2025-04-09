@@ -1,0 +1,149 @@
+{% extends "layout.html" %}
+
+{% block title %}Money Management{% endblock %}
+
+{% block content %}
+    <div class="container">
+        <h1>Money Management</h1>
+        {% if portfolio %}
+        <div class="metrics-container">
+            <div class="metric-card">
+                <h3>Total Investment Value</h3>
+                {% set total_value = namespace(value=0) %}
+                {% for item in portfolio %}
+                    {% set total_value.value = total_value.value + (item.quantity * item.current_price) %}
+                {% endfor %}
+                <div class="metric-value">₹{{ total_value.value|round(2) }}</div>
+            </div>
+            <div class="metric-card">
+                <h3>Total Returns</h3>
+                {% set total_returns = namespace(value=0) %}
+                {% for item in portfolio %}
+                    {% set total_returns.value = total_returns.value + (item.quantity * (item.current_price - item.buy_price)) %}
+                {% endfor %}
+                <div class="metric-value {% if total_returns.value >= 0 %}up{% else %}down{% endif %}">
+                    ₹{{ total_returns.value|round(2) }}
+                </div>
+            </div>
+            <div class="metric-card">
+                <h3>ROI</h3>
+                {% set total_pl = namespace(value=0) %}
+                {% set total_investment = namespace(value=0) %}
+                {% for item in portfolio %}
+                    {% set total_pl.value = total_pl.value + (item.quantity * (item.current_price - item.buy_price)) %}
+                    {% set total_investment.value = total_investment.value + (item.quantity * item.buy_price) %}
+                {% endfor %}
+                <div class="metric-value {% if total_pl.value >= 0 %}up{% else %}down{% endif %}">
+                    {{ ((total_pl.value / total_investment.value) * 100)|round(2) if total_investment.value > 0 else 0 }}%
+                </div>
+            </div>
+        </div>
+        
+        <div class="widget">
+            <div class="widget-header">
+                <h2>Investment Calculator</h2>
+            </div>
+            <div class="widget-content">
+                <form id="investmentCalc">
+                    <div class="form-group">
+                        <label for="monthlyInvestment">Monthly Investment (₹):</label>
+                        <input type="number" id="monthlyInvestment" name="monthlyInvestment" min="0" value="1000" step="100" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="investmentPeriod">Investment Period (Years):</label>
+                        <input type="number" id="investmentPeriod" name="investmentPeriod" min="1" max="30" value="10" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="expectedReturn">Expected Annual Return (%):</label>
+                        <input type="number" id="expectedReturn" name="expectedReturn" min="0" max="20" value="8" required>
+                    </div>
+                    <button type="submit" class="btn primary">Calculate</button>
+                </form>
+                <div class="metrics-container" id="calcResult" style="display: none;">
+                    <div class="metric-card">
+                        <h3>Total Investment</h3>
+                        <div class="metric-value" id="totalInvestment">-</div>
+                    </div>
+                    <div class="metric-card">
+                        <h3>Projected Future Value</h3>
+                        <div class="metric-value" id="futureValue">-</div>
+                    </div>
+                </div>
+                <div class="chart-container" id="projectionChartContainer" style="display: none;">
+                    <canvas id="projectionChart"></canvas>
+                </div>
+            </div>
+        </div>
+        
+        <div class="widget">
+            <div class="widget-header">
+                <h2>Money Management Tips</h2>
+            </div>
+            <div class="widget-content">
+                <details>
+                    <summary>Diversification Strategy</summary>
+                    <p>- Spread investments across different sectors<br>
+                    - Include a mix of growth and value stocks<br>
+                    - Consider adding some defensive stocks<br>
+                    - Regularly rebalance your portfolio</p>
+                </details>
+                <details>
+                    <summary>Risk Management</summary>
+                    <p>- Don't invest more than you can afford to lose<br>
+                    - Set stop-loss orders for volatile positions<br>
+                    - Keep some cash reserves for opportunities<br>
+                    - Monitor your portfolio regularly</p>
+                </details>
+            </div>
+        </div>
+        {% else %}
+        <p class="status">Start trading to access money management features!</p>
+        {% endif %}
+    </div>
+{% endblock %}
+
+{% block scripts %}
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const form = document.getElementById('investmentCalc');
+            let projectionChart = null;
+            
+            form.addEventListener('submit', function(e) {
+                e.preventDefault();
+                const monthly = parseFloat(document.getElementById('monthlyInvestment').value);
+                const years = parseInt(document.getElementById('investmentPeriod').value);
+                const returnRate = parseFloat(document.getElementById('expectedReturn').value) / 100 / 12;
+                const months = years * 12;
+                const futureValue = monthly * ((1 + returnRate) ** months - 1) / returnRate;
+                
+                document.getElementById('totalInvestment').textContent = `₹${(monthly * months).toFixed(2)}`;
+                document.getElementById('futureValue').textContent = `₹${futureValue.toFixed(2)}`;
+                document.getElementById('calcResult').style.display = 'grid';
+                
+                const yearsArray = Array.from({length: years + 1}, (_, i) => i);
+                const principalValues = yearsArray.map(year => monthly * 12 * year);
+                const futureValues = yearsArray.map(year => monthly * 12 * year * (1 + returnRate / 12) ** (year * 12));
+                
+                if (projectionChart) projectionChart.destroy();
+                const ctx = document.getElementById('projectionChart').getContext('2d');
+                projectionChart = new Chart(ctx, {
+                    type: 'line',
+                    data: {
+                        labels: yearsArray,
+                        datasets: [
+                            { label: 'Principal', data: principalValues, borderColor: '#36A2EB' },
+                            { label: 'With Returns', data: futureValues, borderColor: '#FF6384' }
+                        ]
+                    },
+                    options: {
+                        responsive: true,
+                        scales: {
+                            y: { ticks: { callback: value => '₹' + value.toFixed(0) } }
+                        }
+                    }
+                });
+                document.getElementById('projectionChartContainer').style.display = 'block';
+            });
+        });
+    </script>
+{% endblock %}

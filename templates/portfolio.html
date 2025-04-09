@@ -1,0 +1,331 @@
+{% extends "layout.html" %}
+
+{% block title %}Portfolio Overview{% endblock %}
+
+{% block content %}
+    <div class="container">
+        <h1>Portfolio Overview</h1>
+        <div class="metrics-container">
+            <div class="metric-card">
+                <h3>Total Portfolio Value</h3>
+                {% set total_value = namespace(value=0) %}
+                {% for item in portfolio %}
+                    {% set total_value.value = total_value.value + (item.quantity * item.current_price) %}
+                {% endfor %}
+                <div class="metric-value">₹{{ total_value.value|round(2) }}</div>
+            </div>
+            <div class="metric-card">
+                <h3>Total Profit/Loss</h3>
+                {% set total_pl = namespace(value=0) %}
+                {% for item in portfolio %}
+                    {% set total_pl.value = total_pl.value + (item.quantity * (item.current_price - item.buy_price)) %}
+                {% endfor %}
+                <div class="metric-value {% if total_pl.value >= 0 %}up{% else %}down{% endif %}">
+                    ₹{{ total_pl.value|round(2) }}
+                </div>
+            </div>
+            <div class="metric-card">
+                <h3>ROI</h3>
+                {% set total_pl = namespace(value=0) %}
+                {% set total_investment = namespace(value=0) %}
+                {% for item in portfolio %}
+                    {% set total_pl.value = total_pl.value + (item.quantity * (item.current_price - item.buy_price)) %}
+                    {% set total_investment.value = total_investment.value + (item.quantity * item.buy_price) %}
+                {% endfor %}
+                <div class="metric-value {% if total_pl.value >= 0 %}up{% else %}down{% endif %}">
+                    {{ ((total_pl.value / total_investment.value) * 100)|round(2) if total_investment.value > 0 else 0 }}%
+                </div>
+            </div>
+        </div>
+        
+        <div class="widget">
+            <div class="widget-header">
+                <h2>Holdings Details</h2>
+                <div class="widget-controls">
+                    <select id="portfolioFilter">
+                        <option value="all">All</option>
+                        <option value="profit">Profitable Positions</option>
+                        <option value="loss">Loss Making Positions</option>
+                    </select>
+                </div>
+            </div>
+            <div class="widget-content">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Symbol</th>
+                            <th>Quantity</th>
+                            <th>Buy Price</th>
+                            <th>Current Price</th>
+                            <th>Total Value</th>
+                            <th>Profit/Loss</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="portfolioTableBody">
+                        {% for item in portfolio %}
+                        <tr class="{% if item.quantity * (item.current_price - item.buy_price) > 0 %}positive-change{% elif item.quantity * (item.current_price - item.buy_price) < 0 %}negative-change{% endif %}">
+                            <td>{{ item.symbol }}</td>
+                            <td>{{ item.quantity }}</td>
+                            <td class="number">₹{{ item.buy_price|round(2) }}</td>
+                            <td class="number">₹{{ item.current_price|round(2) }}</td>
+                            <td class="number">₹{{ (item.quantity * item.current_price)|round(2) }}</td>
+                            <td class="number {% if item.quantity * (item.current_price - item.buy_price) >= 0 %}up{% else %}down{% endif %}">
+                                ₹{{ (item.quantity * (item.current_price - item.buy_price))|round(2) }}
+                            </td>
+                            <td>
+                                <button class="btn sm primary buy-btn" data-symbol="{{ item.symbol }}">Buy More</button>
+                                <button class="btn sm danger sell-btn" data-symbol="{{ item.symbol }}">Sell</button>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        
+        <div class="widget">
+            <div class="widget-header">
+                <h2>Portfolio Composition</h2>
+            </div>
+            <div class="widget-content">
+                <div class="chart-container">
+                    <canvas id="portfolioChart"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Buy Stock Modal -->
+    <div id="buyStockModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Buy More Stock</h2>
+                <span class="close">×</span>
+            </div>
+            <div class="modal-body">
+                <form id="buyStockForm">
+                    <div class="form-group">
+                        <label for="buySymbol">Stock Symbol:</label>
+                        <input type="text" id="buySymbol" name="stock" readonly>
+                    </div>
+                    <div class="form-group">
+                        <label for="buyQuantity">Quantity:</label>
+                        <input type="number" id="buyQuantity" name="quantity" min="1" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="buyPrice">Buy Price (₹, optional):</label>
+                        <input type="number" id="buyPrice" name="buy_price" min="0" step="0.01" placeholder="Leave blank for market price">
+                    </div>
+                    <div class="form-group">
+                        <label for="transactionDate">Transaction Date (optional):</label>
+                        <input type="date" id="transactionDate" name="transaction_date" placeholder="YYYY-MM-DD">
+                    </div>
+                    <div class="form-group">
+                        <label for="transactionType">Transaction Type:</label>
+                        <select id="transactionType" name="transaction_type">
+                            <option value="buy">New Buy</option>
+                            <option value="average">Average Existing</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="buyNotes">Notes (optional):</label>
+                        <textarea id="buyNotes" name="notes" rows="2" placeholder="Any additional notes"></textarea>
+                    </div>
+                    <div class="form-actions">
+                        <button type="submit" class="btn primary">Buy</button>
+                        <button type="button" class="btn secondary modal-cancel">Cancel</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Sell Stock Modal -->
+    <div id="sellStockModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Sell Stock</h2>
+                <span class="close">×</span>
+            </div>
+            <div class="modal-body">
+                <form id="sellStockForm">
+                    <div class="form-group">
+                        <label for="sellSymbol">Stock Symbol:</label>
+                        <input type="text" id="sellSymbol" name="symbol" readonly>
+                    </div>
+                    <div class="form-group">
+                        <label for="sellQuantity">Quantity:</label>
+                        <input type="number" id="sellQuantity" name="quantity" min="1" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="triggerPrice">Trigger Price (₹, optional):</label>
+                        <input type="number" id="triggerPrice" name="trigger_price" min="0" step="0.01" placeholder="Sell when price reaches this">
+                    </div>
+                    <div class="form-actions">
+                        <button type="submit" class="btn primary">Sell</button>
+                        <button type="button" class="btn secondary modal-cancel">Cancel</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+{% endblock %}
+
+{% block scripts %}
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const filter = document.getElementById('portfolioFilter');
+            filter.addEventListener('change', function() {
+                const rows = document.querySelectorAll('#portfolioTableBody tr');
+                rows.forEach(row => {
+                    const pl = parseFloat(row.cells[5].textContent.replace('₹', ''));
+                    if (this.value === 'profit' && pl <= 0) row.style.display = 'none';
+                    else if (this.value === 'loss' && pl >= 0) row.style.display = 'none';
+                    else row.style.display = '';
+                });
+            });
+
+            const ctx = document.getElementById('portfolioChart').getContext('2d');
+            new Chart(ctx, {
+                type: 'pie',
+                data: {
+                    labels: [{% for item in portfolio %}'{{ item.symbol }}',{% endfor %}],
+                    datasets: [{
+                        data: [{% for item in portfolio %}{{ item.quantity * item.current_price }},{% endfor %}],
+                        backgroundColor: ['#FF6384', '#36A2EB', '#FFCE56', '#4BC0C0', '#9966FF', '#FF9F40', '#2ECC71', '#E74C3C']
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    plugins: {
+                        legend: { position: 'top' },
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    return `${context.label}: ₹${context.raw.toFixed(2)}`;
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+
+            const buyModal = document.getElementById('buyStockModal');
+            const sellModal = document.getElementById('sellStockModal');
+            const buyCloseBtn = buyModal.querySelector('.close');
+            const buyCancelBtn = buyModal.querySelector('.modal-cancel');
+            const sellCloseBtn = sellModal.querySelector('.close');
+            const sellCancelBtn = sellModal.querySelector('.modal-cancel');
+            const buyForm = document.getElementById('buyStockForm');
+            const sellForm = document.getElementById('sellStockForm');
+
+            document.querySelectorAll('.buy-btn').forEach(button => {
+                button.addEventListener('click', function() {
+                    const symbol = this.getAttribute('data-symbol');
+                    document.getElementById('buySymbol').value = symbol;
+                    buyModal.style.display = 'block';
+                });
+            });
+
+            document.querySelectorAll('.sell-btn').forEach(button => {
+                button.addEventListener('click', function() {
+                    const symbol = this.getAttribute('data-symbol');
+                    document.getElementById('sellSymbol').value = symbol;
+                    sellModal.style.display = 'block';
+                });
+            });
+
+            buyCloseBtn.addEventListener('click', function() {
+                buyModal.style.display = 'none';
+            });
+
+            buyCancelBtn.addEventListener('click', function() {
+                buyModal.style.display = 'none';
+            });
+
+            sellCloseBtn.addEventListener('click', function() {
+                sellModal.style.display = 'none';
+            });
+
+            sellCancelBtn.addEventListener('click', function() {
+                sellModal.style.display = 'none';
+            });
+
+            window.addEventListener('click', function(event) {
+                if (event.target == buyModal) {
+                    buyModal.style.display = 'none';
+                }
+                if (event.target == sellModal) {
+                    sellModal.style.display = 'none';
+                }
+            });
+
+            buyForm.addEventListener('submit', function(e) {
+                e.preventDefault();
+                const stock = document.getElementById('buySymbol').value;
+                const quantity = document.getElementById('buyQuantity').value;
+                const buyPrice = document.getElementById('buyPrice').value || '';
+                const transactionDate = document.getElementById('transactionDate').value || '';
+                const transactionType = document.getElementById('transactionType').value;
+                const notes = document.getElementById('buyNotes').value;
+                
+                const formData = new FormData();
+                formData.append('stock', stock);
+                formData.append('quantity', quantity);
+                if (buyPrice) formData.append('buy_price', buyPrice);
+                if (transactionDate) formData.append('transaction_date', transactionDate);
+                formData.append('transaction_type', transactionType);
+                formData.append('notes', notes);
+
+                fetch('/buy_stock', {
+                    method: 'POST',
+                    body: formData
+                })
+                .then(response => response.json())
+                .then(data => {
+                    alert(data.message);
+                    if (data.status === 'success') {
+                        window.location.reload();
+                    }
+                })
+                .catch(error => {
+                    console.error('Error buying stock:', error);
+                    alert('Failed to buy stock. Please try again.');
+                });
+                
+                buyModal.style.display = 'none';
+            });
+
+            sellForm.addEventListener('submit', function(e) {
+                e.preventDefault();
+                const symbol = document.getElementById('sellSymbol').value;
+                const quantity = document.getElementById('sellQuantity').value;
+                const triggerPrice = document.getElementById('triggerPrice').value || 0;
+                
+                const formData = new FormData();
+                formData.append('symbol', symbol);
+                formData.append('quantity', quantity);
+                formData.append('trigger_price', triggerPrice);
+
+                fetch('/sell_stock', {
+                    method: 'POST',
+                    body: formData
+                })
+                .then(response => response.json())
+                .then(data => {
+                    alert(data.message);
+                    if (data.status === 'success') {
+                        window.location.reload();
+                    }
+                })
+                .catch(error => {
+                    console.error('Error selling stock:', error);
+                    alert('Failed to sell stock. Please try again.');
+                });
+                
+                sellModal.style.display = 'none';
+            });
+        });
+    </script>
+{% endblock %}

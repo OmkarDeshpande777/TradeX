@@ -206,4 +206,4 @@ document.addEventListener('DOMContentLoaded', function() {
     } else {
         console.error('periodSelect or currentSymbol not found');
     }
-});
+});x

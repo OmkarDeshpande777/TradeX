@@ -1,0 +1,171 @@
+{% extends "layout.html" %}
+
+{% block title %}Tax Calculator{% endblock %}
+
+{% block content %}
+    <div class="container">
+        <h1>Tax Calculator</h1>
+        {% if portfolio or sold_stocks %}
+        <div class="metrics-container">
+            <div class="metric-card">
+                <h3>Total Profit/Loss</h3>
+                {% set total_pl = namespace(value=0) %}
+                {% for item in portfolio %}
+                    {% set total_pl.value = total_pl.value + (item.quantity * (item.current_price - item.buy_price)) %}
+                {% endfor %}
+                {% for sold in sold_stocks %}
+                    {% set total_pl.value = total_pl.value + sold.profit_loss %}
+                {% endfor %}
+                <div class="metric-value {% if total_pl.value >= 0 %}up{% else %}down{% endif %}">
+                    ₹{{ total_pl.value|round(2) }}
+                </div>
+            </div>
+            <div class="metric-card">
+                <h3>Estimated Tax Liability</h3>
+                {% set tax = namespace(value=0) %}
+                {% for item in portfolio %}
+                    {% set pl = item.quantity * (item.current_price - item.buy_price) %}
+                    {% if pl > 0 %}
+                        {% set tax.value = tax.value + (pl * 0.20) %}
+                    {% endif %}
+                {% endfor %}
+                {% for sold in sold_stocks %}
+                    {% if sold.profit_loss > 0 %}
+                        {% set tax.value = tax.value + (sold.profit_loss * 0.20) %}
+                    {% endif %}
+                {% endfor %}
+                <div class="metric-value">₹{{ tax.value|round(2) }}</div>
+            </div>
+            <div class="metric-card">
+                <h3>Net Profit After Tax</h3>
+                <div class="metric-value {% if total_pl.value >= 0 %}up{% else %}down{% endif %}">
+                    ₹{{ (total_pl.value - tax.value)|round(2) }}
+                </div>
+            </div>
+        </div>
+        
+        <div class="widget">
+            <div class="widget-header">
+                <h2>Tax Breakdown by Position</h2>
+            </div>
+            <div class="widget-content">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Symbol</th>
+                            <th>Profit/Loss</th>
+                            <th>Tax Liability</th>
+                            <th>Net After Tax</th>
+                            <th>Status</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for item in portfolio %}
+                        {% set pl = item.quantity * (item.current_price - item.buy_price) %}
+                        <tr class="{% if pl > 0 %}positive-change{% elif pl < 0 %}negative-change{% endif %}">
+                            <td>{{ item.symbol }}</td>
+                            <td class="number {% if pl >= 0 %}up{% else %}down{% endif %}">₹{{ pl|round(2) }}</td>
+                            <td class="number">₹{{ (pl * 0.20)|round(2) if pl > 0 else 0 }}</td>
+                            <td class="number {% if pl >= 0 %}up{% else %}down{% endif %}">₹{{ (pl - (pl * 0.20 if pl > 0 else 0))|round(2) }}</td>
+                            <td>Held</td>
+                        </tr>
+                        {% endfor %}
+                        {% for sold in sold_stocks %}
+                        <tr class="{% if sold.profit_loss > 0 %}positive-change{% elif sold.profit_loss < 0 %}negative-change{% endif %}">
+                            <td>{{ sold.symbol }}</td>
+                            <td class="number {% if sold.profit_loss >= 0 %}up{% else %}down{% endif %}">₹{{ sold.profit_loss|round(2) }}</td>
+                            <td class="number">₹{{ (sold.profit_loss * 0.20)|round(2) if sold.profit_loss > 0 else 0 }}</td>
+                            <td class="number {% if sold.profit_loss >= 0 %}up{% else %}down{% endif %}">₹{{ (sold.profit_loss - (sold.profit_loss * 0.20 if sold.profit_loss > 0 else 0))|round(2) }}</td>
+                            <td>Sold ({{ sold.sell_date }})</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        
+        <div class="widget">
+            <div class="widget-header">
+                <h2>Tax Rate Information</h2>
+            </div>
+            <div class="widget-content">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Holding Period</th>
+                            <th>Tax Rate</th>
+                            <th>Description</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>Short Term (≤ 1 year)</td>
+                            <td>20%</td>
+                            <td>Applicable to holdings sold within 1 year</td>
+                        </tr>
+                        <tr>
+                            <td>Long Term (> 1 year)</td>
+                            <td>15%</td>
+                            <td>Applicable to holdings sold after 1 year</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        
+        <div class="widget">
+            <div class="widget-header">
+                <h2>Custom Tax Calculation</h2>
+            </div>
+            <div class="widget-content">
+                <form id="customTaxForm">
+                    <div class="form-group">
+                        <label for="profitAmount">Profit Amount (₹):</label>
+                        <input type="number" id="profitAmount" name="profitAmount" min="0" step="100" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Holding Period:</label>
+                        <select id="holdingPeriod" name="holdingPeriod">
+                            <option value="short">Short Term (≤ 1 year)</option>
+                            <option value="long">Long Term (> 1 year)</option>
+                        </select>
+                    </div>
+                    <button type="submit" class="btn primary">Calculate</button>
+                </form>
+                <div id="taxResult" class="metrics-container" style="display: none;">
+                    <div class="metric-card">
+                        <h3>Estimated Tax</h3>
+                        <div class="metric-value" id="estimatedTax">-</div>
+                    </div>
+                    <div class="metric-card">
+                        <h3>Net Profit After Tax</h3>
+                        <div class="metric-value" id="netProfit">-</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% else %}
+        <p class="status">Add trades to your portfolio to calculate tax liability!</p>
+        {% endif %}
+    </div>
+{% endblock %}
+
+{% block scripts %}
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const form = document.getElementById('customTaxForm');
+            form.addEventListener('submit', function(e) {
+                e.preventDefault();
+                const profit = parseFloat(document.getElementById('profitAmount').value);
+                const period = document.getElementById('holdingPeriod').value;
+                const taxRate = period === 'short' ? 0.20 : 0.15;
+                const tax = profit * taxRate;
+                const net = profit - tax;
+                
+                document.getElementById('estimatedTax').textContent = `₹${tax.toFixed(2)}`;
+                document.getElementById('netProfit').textContent = `₹${net.toFixed(2)}`;
+                document.getElementById('taxResult').style.display = 'grid';
+            });
+        });
+    </script>
+{% endblock %}
