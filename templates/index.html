@@ -22,6 +22,10 @@
                 <h2>Stock Watchlist</h2>
                 <div class="widget-controls">
                     <button id="addStockBtn" class="btn primary">Add Stock</button>
+                    <button id="exportPortfolioBtn" class="btn secondary">Export Portfolio</button>
+                    <button id="exportTaxBtn" class="btn secondary">Export Tax Report</button>
+                    <button id="exportDividendsBtn" class="btn secondary">Export Dividends</button>
+                    <button id="addAlertBtn" class="btn primary">Add Alert</button>
                 </div>
             </div>
             <div class="widget-content">
@@ -56,6 +60,16 @@
             </div>
         </div>
         
+        <!-- Alerts Widget -->
+        <div class="widget">
+            <div class="widget-header">
+                <h2>Price Alerts</h2>
+            </div>
+            <div class="widget-content">
+                <ul id="alertList"></ul>
+            </div>
+        </div>
+
         <!-- New IPO Section -->
         {% include 'components/upcoming_ipos.html' %}
 
@@ -141,6 +155,39 @@
             </div>
         </div>
     </div>
+
+    <!-- Add Alert Modal -->
+    <div id="alertModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Add Price Alert</h2>
+                <span class="close">×</span>
+            </div>
+            <div class="modal-body">
+                <form id="alertForm">
+                    <div class="form-group">
+                        <label for="alertSymbol">Stock Symbol:</label>
+                        <input type="text" id="alertSymbol" name="symbol" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="alertPrice">Target Price (₹):</label>
+                        <input type="number" id="alertPrice" name="price" min="0" step="0.01" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="alertType">Alert Type:</label>
+                        <select id="alertType" name="alert_type">
+                            <option value="above">Above</option>
+                            <option value="below">Below</option>
+                        </select>
+                    </div>
+                    <div class="form-actions">
+                        <button type="submit" class="btn primary">Add</button>
+                        <button type="button" class="btn secondary modal-cancel">Cancel</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
 {% endblock %}
 
 {% block scripts %}
@@ -168,6 +215,87 @@
             
             stockFilter.addEventListener('input', applyFilters);
             trendFilter.addEventListener('change', applyFilters);
+
+            // Export buttons
+            document.getElementById('exportPortfolioBtn').addEventListener('click', () => window.location.href = '/export_portfolio');
+            document.getElementById('exportTaxBtn').addEventListener('click', () => window.location.href = '/export_tax_report');
+            document.getElementById('exportDividendsBtn').addEventListener('click', () => window.location.href = '/export_dividends');
+
+            // Alerts
+            const alertModal = document.getElementById('alertModal');
+            const addAlertBtn = document.getElementById('addAlertBtn');
+            const alertCloseBtn = alertModal.querySelector('.close');
+            const alertCancelBtn = alertModal.querySelector('.modal-cancel');
+            const alertForm = document.getElementById('alertForm');
+
+            addAlertBtn.addEventListener('click', () => alertModal.style.display = 'block');
+            alertCloseBtn.addEventListener('click', () => alertModal.style.display = 'none');
+            alertCancelBtn.addEventListener('click', () => alertModal.style.display = 'none');
+            window.addEventListener('click', (event) => {
+                if (event.target == alertModal) alertModal.style.display = 'none';
+            });
+
+            alertForm.addEventListener('submit', function(e) {
+                e.preventDefault();
+                const symbol = document.getElementById('alertSymbol').value;
+                const price = document.getElementById('alertPrice').value;
+                const alertType = document.getElementById('alertType').value;
+
+                const formData = new FormData();
+                formData.append('symbol', symbol);
+                formData.append('price', price);
+                formData.append('alert_type', alertType);
+
+                fetch('/add_alert', {
+                    method: 'POST',
+                    body: formData
+                })
+                .then(response => response.json())
+                .then(data => {
+                    alert(data.message);
+                    if (data.status === 'success') fetchAlerts();
+                    alertModal.style.display = 'none';
+                })
+                .catch(error => {
+                    console.error('Error adding alert:', error);
+                    alert('Failed to add alert');
+                });
+            });
+
+            fetchAlerts();
+
+            function fetchAlerts() {
+                fetch('/api/alerts')
+                    .then(response => response.json())
+                    .then(data => {
+                        const alertList = document.getElementById('alertList');
+                        alertList.innerHTML = '';
+                        data.alerts.forEach(alert => {
+                            const li = document.createElement('li');
+                            li.innerHTML = `
+                                ${alert.symbol}: ${alert.type} ₹${alert.price} (Current: ₹${alert.current_price.toFixed(2)}, ${alert.triggered ? 'Triggered' : 'Pending'})
+                                <button class="btn sm danger" onclick="deleteAlert('${alert.id}')">Delete</button>
+                            `;
+                            alertList.appendChild(li);
+                        });
+                    })
+                    .catch(error => console.error('Error fetching alerts:', error));
+            }
+
+            window.deleteAlert = function(alertId) {
+                const formData = new FormData();
+                formData.append('id', alertId);
+                fetch('/delete_alert', {
+                    method: 'POST',
+                    body: formData
+                })
+                .then(response => response.json())
+                .then(data => {
+                    alert(data.message);
+                    if (data.status === 'success') fetchAlerts();
+                })
+                .catch(error => console.error('Error deleting alert:', error));
+            };
         });
     </script>
 {% endblock %}

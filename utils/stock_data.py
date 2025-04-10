@@ -346,6 +346,7 @@ def get_upcoming_ipos():
             return []
             
         data = response.json()
+        print(data)
         ipos = data.get('finance', {}).get('result', [{}])[0].get('quotes', [])
         
         # Format the IPO data
@@ -491,6 +492,55 @@ def get_stocks_data(symbols):
     all_data.sort(key=lambda x: x['market_cap'] if isinstance(x['market_cap'], (int, float)) else 0, reverse=True)
             
     return all_data
+
+def get_stock_dividends(symbol):
+    """
+    Get dividend history for a stock from Yahoo Finance
+    
+    Parameters:
+    symbol (str): Stock symbol
+    
+    Returns:
+    pandas.DataFrame: Dividend history with Date index
+    """
+    if not (symbol.endswith('.NS') or symbol.endswith('.BO')):
+        symbol = f"{symbol}.NS"
+        
+    headers = {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
+    }
+    
+    url = f"https://query1.finance.yahoo.com/v8/finance/chart/{symbol}?interval=1mo&range=5y&events=div"
+    
+    try:
+        response = requests.get(url, headers=headers)
+        if response.status_code != 200:
+            return pd.DataFrame(columns=['Dividends'])
+            
+        data = response.json()
+        events = data.get('chart', {}).get('result', [{}])[0].get('events', {})
+        dividends = events.get('dividends', {})
+        
+        if not dividends:
+            return pd.DataFrame(columns=['Dividends'])
+        
+        dividend_data = []
+        for timestamp, div_data in dividends.items():
+            dividend_data.append({
+                'Date': datetime.fromtimestamp(int(timestamp)).strftime('%Y-%m-%d'),
+                'Dividends': div_data.get('amount', 0)
+            })
+        
+        df = pd.DataFrame(dividend_data)
+        df['Date'] = pd.to_datetime(df['Date'])
+        df.set_index('Date', inplace=True)
+        df.sort_index(ascending=False, inplace=True)
+        
+        return df
+        
+    except Exception as e:
+        print(f"Error fetching dividend data for {symbol}: {e}")
+        return pd.DataFrame(columns=['Dividends'])
 
 def get_stock_history(symbol, period="1y"):
     """

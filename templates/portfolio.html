@@ -94,6 +94,28 @@
                 </div>
             </div>
         </div>
+
+        <div class="widget">
+            <div class="widget-header">
+                <h2>Portfolio Diversification</h2>
+            </div>
+            <div class="widget-content">
+                <div class="chart-container">
+                    <canvas id="diversificationChart"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <div class="widget">
+            <div class="widget-header">
+                <h2>Portfolio History</h2>
+            </div>
+            <div class="widget-content">
+                <div class="chart-container">
+                    <canvas id="historyChart"></canvas>
+                </div>
+            </div>
+        </div>
     </div>
     
     <!-- Buy Stock Modal -->
@@ -186,8 +208,8 @@
                 });
             });
 
-            const ctx = document.getElementById('portfolioChart').getContext('2d');
-            new Chart(ctx, {
+            const portfolioCtx = document.getElementById('portfolioChart').getContext('2d');
+            new Chart(portfolioCtx, {
                 type: 'pie',
                 data: {
                     labels: [{% for item in portfolio %}'{{ item.symbol }}',{% endfor %}],
@@ -210,6 +232,69 @@
                     }
                 }
             });
+
+            fetchDiversification();
+            fetchPortfolioHistory();
+
+            function fetchDiversification() {
+                fetch('/api/portfolio/diversification')
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.status === 'success') {
+                            const ctx = document.getElementById('diversificationChart').getContext('2d');
+                            new Chart(ctx, {
+                                type: 'pie',
+                                data: {
+                                    labels: Object.keys(data.sectors),
+                                    datasets: [{
+                                        data: Object.values(data.sectors).map(s => s.percentage),
+                                        backgroundColor: ['#FF6384', '#36A2EB', '#FFCE56', '#4BC0C0', '#9966FF', '#FF9F40']
+                                    }]
+                                },
+                                options: {
+                                    responsive: true,
+                                    plugins: {
+                                        legend: { position: 'top' },
+                                        tooltip: {
+                                            callbacks: {
+                                                label: context => `${context.label}: ${context.raw.toFixed(2)}%`
+                                            }
+                                        }
+                                    }
+                                }
+                            });
+                        }
+                    });
+            }
+
+            function fetchPortfolioHistory() {
+                fetch('/api/portfolio/history')
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.status === 'success') {
+                            const ctx = document.getElementById('historyChart').getContext('2d');
+                            new Chart(ctx, {
+                                type: 'line',
+                                data: {
+                                    labels: data.history.map(h => h.date),
+                                    datasets: [{
+                                        label: 'Portfolio Value',
+                                        data: data.history.map(h => h.value),
+                                        borderColor: '#36A2EB',
+                                        fill: false
+                                    }]
+                                },
+                                options: {
+                                    responsive: true,
+                                    scales: {
+                                        x: { title: { display: true, text: 'Date' } },
+                                        y: { title: { display: true, text: 'Value (₹)' } }
+                                    }
+                                }
+                            });
+                        }
+                    });
+            }
 
             const buyModal = document.getElementById('buyStockModal');
             const sellModal = document.getElementById('sellStockModal');

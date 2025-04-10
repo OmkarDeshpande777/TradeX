@@ -500,3 +500,109 @@ function filterFunds() {
     const visibleRows = document.querySelectorAll('#fundsTable tbody tr:not([style*="display: none"])');
     updateFundsStatus(visibleRows.length === 0 ? 'No funds match the current filters' : '');
 }
+
+// Add these functions to main.js
+
+function setupAdditionalInteractions() {
+    // Export buttons (assuming added to index.html)
+    document.getElementById('exportPortfolioBtn')?.addEventListener('click', () => window.location.href = '/export_portfolio');
+    document.getElementById('exportTaxBtn')?.addEventListener('click', () => window.location.href = '/export_tax_report');
+    document.getElementById('exportDividendsBtn')?.addEventListener('click', () => window.location.href = '/export_dividends');
+
+    // Alerts modal (assuming added to index.html)
+    const alertModal = document.getElementById('alertModal');
+    const addAlertBtn = document.getElementById('addAlertBtn');
+    const alertCloseBtn = alertModal?.querySelector('.close');
+    const alertCancelBtn = alertModal?.querySelector('.modal-cancel');
+    const alertForm = document.getElementById('alertForm');
+
+    if (addAlertBtn && alertModal) {
+        addAlertBtn.addEventListener('click', () => alertModal.style.display = 'block');
+        alertCloseBtn.addEventListener('click', () => alertModal.style.display = 'none');
+        alertCancelBtn.addEventListener('click', () => alertModal.style.display = 'none');
+        window.addEventListener('click', (event) => {
+            if (event.target == alertModal) alertModal.style.display = 'none';
+        });
+
+        alertForm.addEventListener('submit', function(e) {
+            e.preventDefault();
+            const symbol = document.getElementById('alertSymbol').value;
+            const price = document.getElementById('alertPrice').value;
+            const alertType = document.getElementById('alertType').value;
+
+            const formData = new FormData();
+            formData.append('symbol', symbol);
+            formData.append('price', price);
+            formData.append('alert_type', alertType);
+
+            fetch('/add_alert', {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => response.json())
+            .then(data => {
+                updateStatus(data.message);
+                if (data.status === 'success') fetchAlerts();
+                alertModal.style.display = 'none';
+            })
+            .catch(error => {
+                console.error('Error adding alert:', error);
+                updateStatus('Failed to add alert');
+            });
+        });
+    }
+}
+
+function fetchAlerts() {
+    fetch('/api/alerts')
+        .then(response => response.json())
+        .then(data => {
+            populateAlerts(data.alerts);
+        })
+        .catch(error => console.error('Error fetching alerts:', error));
+}
+
+function populateAlerts(alerts) {
+    const alertList = document.getElementById('alertList');
+    if (!alertList) return;
+    alertList.innerHTML = '';
+    alerts.forEach(alert => {
+        const li = document.createElement('li');
+        li.innerHTML = `
+            ${alert.symbol}: ${alert.type} ₹${alert.price} (Current: ₹${alert.current_price}, ${alert.triggered ? 'Triggered' : 'Pending'})
+            <button class="btn sm danger" onclick="deleteAlert('${alert.id}')">Delete</button>
+        `;
+        alertList.appendChild(li);
+    });
+}
+
+function deleteAlert(alertId) {
+    const formData = new FormData();
+    formData.append('id', alertId);
+    fetch('/delete_alert', {
+        method: 'POST',
+        body: formData
+    })
+    .then(response => response.json())
+    .then(data => {
+        updateStatus(data.message);
+        if (data.status === 'success') fetchAlerts();
+    })
+    .catch(error => console.error('Error deleting alert:', error));
+}
+
+// Call this in initializeApp
+function initializeApp() {
+    setupRefreshControls();
+    setupModalInteractions();
+    setupAdditionalInteractions(); // Add this
+    setupTableSorting();
+    setupFilters();
+    initializeSectorChart();
+    
+    fetchStockData();
+    fetchIPOData();
+    fetchMutualFundsData();
+    fetchAlerts(); // Add this
+    startAutoRefresh();
+}
